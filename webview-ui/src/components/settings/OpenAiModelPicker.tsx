@@ -170,7 +170,9 @@ const OpenAiModelPicker: React.FC = () => {
 							{modelSearchResults.map((item, index) => (
 								<DropdownItem
 									key={item.id}
-									ref={(el) => (itemRefs.current[index] = el)}
+									ref={(el) => {
+										itemRefs.current[index] = el
+									}}
 									isSelected={index === selectedIndex}
 									onMouseEnter={() => setSelectedIndex(index)}
 									onClick={() => {
@@ -215,18 +217,28 @@ const DropdownList = styled.div`
 	border-bottom-right-radius: 3px;
 `
 
-const DropdownItem = styled.div<{ isSelected: boolean }>`
-	padding: 5px 10px;
-	cursor: pointer;
-	word-break: break-all;
-	white-space: normal;
+interface DropdownItemProps extends React.HTMLAttributes<HTMLDivElement> {
+    isSelected: boolean;
+}
 
-	background-color: ${({ isSelected }) => (isSelected ? "var(--vscode-list-activeSelectionBackground)" : "inherit")};
+const StyledDropdownItem = styled.div<DropdownItemProps>`
+    padding: 5px 10px;
+    cursor: pointer;
+    word-break: break-all;
+    white-space: normal;
 
-	&:hover {
-		background-color: var(--vscode-list-activeSelectionBackground);
-	}
+    background-color: ${({ isSelected }) => (isSelected ? "var(--vscode-list-activeSelectionBackground)" : "inherit")};
+
+    &:hover {
+        background-color: var(--vscode-list-activeSelectionBackground);
+    }
 `
+
+const DropdownItem = React.forwardRef<HTMLDivElement, DropdownItemProps>((props, ref) => (
+    <StyledDropdownItem {...props} ref={ref} />
+))
+
+DropdownItem.displayName = 'DropdownItem'
 
 // Markdown
 
@@ -288,7 +300,6 @@ export const ModelDescriptionMarkdown = memo(
 		setIsExpanded: (isExpanded: boolean) => void
 	}) => {
 		const [reactContent, setMarkdown] = useRemark()
-		// const [isExpanded, setIsExpanded] = useState(false)
 		const [showSeeMore, setShowSeeMore] = useState(false)
 		const textContainerRef = useRef<HTMLDivElement>(null)
 		const textRef = useRef<HTMLDivElement>(null)
@@ -303,9 +314,6 @@ export const ModelDescriptionMarkdown = memo(
 				const { clientHeight } = textContainerRef.current
 				const isOverflowing = scrollHeight > clientHeight
 				setShowSeeMore(isOverflowing)
-				// if (!isOverflowing) {
-				// 	setIsExpanded(false)
-				// }
 			}
 		}, [reactContent, setIsExpanded])
 
@@ -326,9 +334,6 @@ export const ModelDescriptionMarkdown = memo(
 							WebkitLineClamp: isExpanded ? "unset" : 3,
 							WebkitBoxOrient: "vertical",
 							overflow: "hidden",
-							// whiteSpace: "pre-wrap",
-							// wordBreak: "break-word",
-							// overflowWrap: "anywhere",
 						}}>
 						{reactContent}
 					</div>
@@ -351,8 +356,6 @@ export const ModelDescriptionMarkdown = memo(
 							/>
 							<VSCodeLink
 								style={{
-									// cursor: "pointer",
-									// color: "var(--vscode-textLink-foreground)",
 									fontSize: "inherit",
 									paddingRight: 0,
 									paddingLeft: 3,
@@ -366,5 +369,5 @@ export const ModelDescriptionMarkdown = memo(
 				</div>
 			</StyledMarkdown>
 		)
-	},
+	}
 )

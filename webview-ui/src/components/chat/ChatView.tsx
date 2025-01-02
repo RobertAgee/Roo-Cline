@@ -10,12 +10,12 @@ import {
 	ClineSayBrowserAction,
 	ClineSayTool,
 	ExtensionMessage,
-} from "../../shared/ExtensionMessage"
-import { McpServer, McpTool } from "../../shared/mcp"
-import { findLast } from "../../shared/array"
-import { combineApiRequests } from "../../shared/combineApiRequests"
-import { combineCommandSequences } from "../../shared/combineCommandSequences"
-import { getApiMetrics } from "../../shared/getApiMetrics"
+} from "../../../../src/shared/ExtensionMessage"
+import { McpServer, McpTool } from "../../../../src/shared/mcp"
+import { findLast } from "../../../../src/shared/array"
+import { combineApiRequests } from "../../../../src/shared/combineApiRequests"
+import { combineCommandSequences } from "../../../../src/shared/combineCommandSequences"
+import { getApiMetrics } from "../../../../src/shared/getApiMetrics"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { vscode } from "../../utils/vscode"
 import HistoryPreview from "../history/HistoryPreview"
