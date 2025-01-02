@@ -8,7 +8,7 @@ import pWaitFor from "p-wait-for"
 import * as path from "path"
 import { serializeError } from "serialize-error"
 import * as vscode from "vscode"
-import { ApiHandler, buildApiHandler } from "../api"
+import { ApiHandler, SingleCompletionHandler, buildApiHandler } from "../api"
 import { ApiStream } from "../api/transform/stream"
 import { DiffViewProvider } from "../integrations/editor/DiffViewProvider"
 import { findToolName, formatContentBlockToMarkdown } from "../integrations/misc/export-markdown"
@@ -50,6 +50,7 @@ import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 import { detectCodeOmission } from "../integrations/editor/detect-omission"
 import { BrowserSession } from "../services/browser/BrowserSession"
 import playVoice from "../utils/voice"
+import { OpenRouterHandler } from "../api/providers/openrouter"
 
 const cwd =
 	vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop") // may or may not exist but fs checking existence would immediately ask for permission which would be bad UX, need to come up with a better solution
@@ -68,8 +69,9 @@ export class Cline {
 	private didEditFile: boolean = false
 	customInstructions?: string
 	diffStrategy?: DiffStrategy
+	diffEnabled: boolean = false
 
-	apiConversationHistory: Anthropic.MessageParam[] = []
+	apiConversationHistory: (Anthropic.MessageParam & { ts?: number })[] = []
 	clineMessages: ClineMessage[] = []
 	private askResponse?: ClineAskResponse
 	private askResponseText?: string
@@ -98,10 +100,11 @@ export class Cline {
 		provider: ClineProvider,
 		apiConfiguration: ApiConfiguration,
 		customInstructions?: string,
-		diffEnabled?: boolean,
-		task?: string,
-		images?: string[],
-		historyItem?: HistoryItem,
+		enableDiff?: boolean,
+		fuzzyMatchThreshold?: number,
+		task?: string | undefined,
+		images?: string[] | undefined,
+		historyItem?: HistoryItem | undefined,
 	) {
 		this.providerRef = new WeakRef(provider)
 		this.api = buildApiHandler(apiConfiguration)
@@ -110,8 +113,9 @@ export class Cline {
 		this.browserSession = new BrowserSession(provider.context)
 		this.diffViewProvider = new DiffViewProvider(cwd)
 		this.customInstructions = customInstructions
-		if (diffEnabled && this.api.getModel().id) {
-			this.diffStrategy = getDiffStrategy(this.api.getModel().id)
+		this.diffEnabled = enableDiff ?? false
+		if (this.diffEnabled && this.api.getModel().id) {
+			this.diffStrategy = getDiffStrategy(this.api.getModel().id, fuzzyMatchThreshold ?? 1.0)
 		}
 		if (historyItem) {
 			this.taskId = historyItem.id
@@ -146,11 +150,12 @@ export class Cline {
 	}
 
 	private async addToApiConversationHistory(message: Anthropic.MessageParam) {
-		this.apiConversationHistory.push(message)
+		const messageWithTs = { ...message, ts: Date.now() }
+		this.apiConversationHistory.push(messageWithTs)
 		await this.saveApiConversationHistory()
 	}
 
-	private async overwriteApiConversationHistory(newHistory: Anthropic.MessageParam[]) {
+	async overwriteApiConversationHistory(newHistory: Anthropic.MessageParam[]) {
 		this.apiConversationHistory = newHistory
 		await this.saveApiConversationHistory()
 	}
@@ -186,7 +191,7 @@ export class Cline {
 		await this.saveClineMessages()
 	}
 
-	private async overwriteClineMessages(newMessages: ClineMessage[]) {
+	public async overwriteClineMessages(newMessages: ClineMessage[]) {
 		this.clineMessages = newMessages
 		await this.saveClineMessages()
 	}
@@ -441,6 +446,11 @@ export class Cline {
 		await this.overwriteClineMessages(modifiedClineMessages)
 		this.clineMessages = await this.getSavedClineMessages()
 
+		// need to make sure that the api conversation history can be resumed by the api, even if it goes out of sync with cline messages
+
+		let existingApiConversationHistory: Anthropic.Messages.MessageParam[] =
+		await this.getSavedApiConversationHistory()
+
 		// Now present the cline messages to the user and ask if they want to resume
 
 		const lastClineMessage = this.clineMessages
@@ -473,11 +483,6 @@ export class Cline {
 			responseText = text
 			responseImages = images
 		}
-
-		// need to make sure that the api conversation history can be resumed by the api, even if it goes out of sync with cline messages
-
-		let existingApiConversationHistory: Anthropic.Messages.MessageParam[] =
-			await this.getSavedApiConversationHistory()
 
 		// v2.0 xml tags refactor caveat: since we don't use tools anymore, we need to replace all tool use blocks with a text block since the API disallows conversations with tool uses and no tool schema
 		const conversationWithoutToolBlocks = existingApiConversationHistory.map((message) => {
@@ -701,15 +706,31 @@ export class Cline {
 			}
 		}
 
-		let result = ""
+		let lines: string[] = []
 		process.on("line", (line) => {
-			result += line + "\n"
+			lines.push(line)
 			if (!didContinue) {
 				sendCommandOutput(line)
 			} else {
 				this.say("command_output", line)
 			}
 		})
+
+		const getFormattedOutput = async () => {
+			const { terminalOutputLineLimit } = await this.providerRef.deref()?.getState() ?? {}
+			const limit = terminalOutputLineLimit ?? 0
+			
+			if (limit > 0 && lines.length > limit) {
+				const beforeLimit = Math.floor(limit * 0.2) // 20% of lines before
+				const afterLimit = limit - beforeLimit // remaining 80% after
+				return [
+					...lines.slice(0, beforeLimit),
+					`\n[...${lines.length - limit} lines omitted...]\n`,
+					...lines.slice(-afterLimit)
+				].join('\n')
+			}
+			return lines.join('\n')
+		}
 
 		let completed = false
 		process.once("completed", () => {
@@ -729,7 +750,8 @@ export class Cline {
 		// grouping command_output messages despite any gaps anyways)
 		await delay(50)
 
-		result = result.trim()
+		const output = await getFormattedOutput()
+		const result = output.trim()
 
 		if (userFeedback) {
 			await this.say("user_feedback", userFeedback.text, userFeedback.images)
@@ -767,7 +789,8 @@ export class Cline {
 			throw new Error("MCP hub not available")
 		}
 
-		const systemPrompt = await SYSTEM_PROMPT(cwd, this.api.getModel().info.supportsComputerUse ?? false, mcpHub, this.diffStrategy) + await addCustomInstructions(this.customInstructions ?? '', cwd)
+		const { browserViewportSize, preferredLanguage } = await this.providerRef.deref()?.getState() ?? {}
+		const systemPrompt = await SYSTEM_PROMPT(cwd, this.api.getModel().info.supportsComputerUse ?? false, mcpHub, this.diffStrategy, browserViewportSize) + await addCustomInstructions(this.customInstructions ?? '', cwd, preferredLanguage)
 
 		// If the previous API request's total token usage is close to the context window, truncate the conversation history to free up space for the new request
 		if (previousApiReqIndex >= 0) {
@@ -786,7 +809,9 @@ export class Cline {
 			}
 		}
 
-		const stream = this.api.createMessage(systemPrompt, this.apiConversationHistory)
+		// Convert to Anthropic.MessageParam by spreading only the API-required properties
+		const cleanConversationHistory = this.apiConversationHistory.map(({ role, content }) => ({ role, content }))
+		const stream = this.api.createMessage(systemPrompt, cleanConversationHistory)
 		const iterator = stream[Symbol.asyncIterator]()
 
 		try {
@@ -1038,6 +1063,7 @@ export class Cline {
 					case "write_to_file": {
 						const relPath: string | undefined = block.params.path
 						let newContent: string | undefined = block.params.content
+						let predictedLineCount: number | undefined = parseInt(block.params.line_count ?? "0")
 						if (!relPath || !newContent) {
 							// checking for newContent ensure relPath is complete
 							// wait so we can determine if it's a new file or editing an existing file
@@ -1106,6 +1132,12 @@ export class Cline {
 									await this.diffViewProvider.reset()
 									break
 								}
+								if (!predictedLineCount) {
+									this.consecutiveMistakeCount++
+									pushToolResult(await this.sayAndCreateMissingParamError("write_to_file", "line_count"))
+									await this.diffViewProvider.reset()
+									break
+								}
 								this.consecutiveMistakeCount = 0
 
 								// if isEditingFile false, that means we have the full contents of the file already.
@@ -1122,11 +1154,11 @@ export class Cline {
 								this.diffViewProvider.scrollToFirstDiff()
 
 								// Check for code omissions before proceeding
-								if (detectCodeOmission(this.diffViewProvider.originalContent || "", newContent)) {
+								if (detectCodeOmission(this.diffViewProvider.originalContent || "", newContent, predictedLineCount)) {
 									if (this.diffStrategy) {
 										await this.diffViewProvider.revertChanges()
 										pushToolResult(formatResponse.toolError(
-											"Content appears to be truncated. Found comments indicating omitted code (e.g., '// rest of code unchanged', '/* previous code */'). Please provide the complete file content without any omissions if possible, or otherwise use the 'apply_diff' tool to apply the diff to the original file."
+											`Content appears to be truncated (file has ${newContent.split("\n").length} lines but was predicted to have ${predictedLineCount} lines), and found comments indicating omitted code (e.g., '// rest of code unchanged', '/* previous code */'). Please provide the complete file content without any omissions if possible, or otherwise use the 'apply_diff' tool to apply the diff to the original file.`
 										))
 										break
 									} else {
@@ -2459,6 +2491,22 @@ export class Cline {
 		if (terminalDetails) {
 			details += terminalDetails
 		}
+
+		// Add current time information with timezone
+		const now = new Date()
+		const formatter = new Intl.DateTimeFormat(undefined, {
+			year: 'numeric',
+			month: 'numeric',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: 'numeric',
+			second: 'numeric',
+			hour12: true
+		})
+		const timeZone = formatter.resolvedOptions().timeZone
+		const timeZoneOffset = -now.getTimezoneOffset() / 60 // Convert to hours and invert sign to match conventional notation
+		const timeZoneOffsetStr = `${timeZoneOffset >= 0 ? '+' : ''}${timeZoneOffset}:00`
+		details += `\n\n# Current Time\n${formatter.format(now)} (${timeZone}, UTC${timeZoneOffsetStr})`
 
 		if (includeFileDetails) {
 			details += `\n\n# Current Working Directory (${cwd.toPosix()}) Files\n`

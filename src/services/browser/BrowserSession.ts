@@ -45,7 +45,7 @@ export class BrowserSession {
 		return stats
 	}
 
-	async launchBrowser() {
+	async launchBrowser(): Promise<void> {
 		console.log("launch browser called")
 		if (this.browser) {
 			// throw new Error("Browser already launched")
@@ -58,10 +58,11 @@ export class BrowserSession {
 				"--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
 			],
 			executablePath: stats.executablePath,
-			defaultViewport: {
-				width: 900,
-				height: 600,
-			},
+			defaultViewport: (() => {
+				const size = (this.context.globalState.get("browserViewportSize") as string | undefined) || "900x600"
+				const [width, height] = size.split("x").map(Number)
+				return { width, height }
+			})(),
 			// headless: false,
 		})
 		// (latest version of puppeteer does not add headless to user agent)
@@ -135,6 +136,7 @@ export class BrowserSession {
 		let screenshotBase64 = await this.page.screenshot({
 			...options,
 			type: "webp",
+			quality: (await this.context.globalState.get("screenshotQuality") as number | undefined) ?? 75,
 		})
 		let screenshot = `data:image/webp;base64,${screenshotBase64}`
 
@@ -245,25 +247,29 @@ export class BrowserSession {
 	}
 
 	async scrollDown(): Promise<BrowserActionResult> {
+		const size = (await this.context.globalState.get("browserViewportSize") as string | undefined) || "900x600"
+		const height = parseInt(size.split("x")[1])
 		return this.doAction(async (page) => {
-			await page.evaluate(() => {
+			await page.evaluate((scrollHeight) => {
 				window.scrollBy({
-					top: 600,
+					top: scrollHeight,
 					behavior: "auto",
 				})
-			})
+			}, height)
 			await delay(300)
 		})
 	}
 
 	async scrollUp(): Promise<BrowserActionResult> {
+		const size = (await this.context.globalState.get("browserViewportSize") as string | undefined) || "900x600"
+		const height = parseInt(size.split("x")[1])
 		return this.doAction(async (page) => {
-			await page.evaluate(() => {
+			await page.evaluate((scrollHeight) => {
 				window.scrollBy({
-					top: -600,
+					top: -scrollHeight,
 					behavior: "auto",
 				})
-			})
+			}, height)
 			await delay(300)
 		})
 	}

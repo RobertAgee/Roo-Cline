@@ -1,18 +1,26 @@
 # Roo-Cline
 
-A fork of Cline, an autonomous coding agent, tweaked for more speed and flexibility. It’s been mainly writing itself recently, with a light touch of human guidance here and there.
+A fork of Cline, an autonomous coding agent, with some additional experimental features. It’s been mainly writing itself recently, with a light touch of human guidance here and there.
 
-## Features
+## Experimental Features
 
-- Automatically approve commands, browsing, file writing, and MCP tools
-- Faster, more targeted edits via diffs (even on big files)
-- Detects and fixes missing code chunks
-- `.clinerules` for project-specific instructions
 - Drag and drop images into chats
+- Delete messages from chats
+- "Enhance prompt" button (OpenRouter models only for now)
 - Sound effects for feedback
+- Option to use browsers of different sizes and adjust screenshot quality
 - Quick prompt copying from history
 - OpenRouter compression support
-- Support for newer Gemini models (gemini-exp-1206, gemini-2.0-flash-exp) and Meta 3, 3.1, and 3.2 models via AWS Bedrock
+- Includes current time in the system prompt
+- Uses a file system watcher to more reliably watch for file system changes
+- Language selection for Cline's communication (English, Japanese, Spanish, French, German, and more)
+- Support for DeepSeek V3
+- Support for Meta 3, 3.1, and 3.2 models via AWS Bedrock
+- Support for listing models from OpenAI-compatible providers
+- Per-tool MCP auto-approval
+- Enable/disable MCP servers
+- Configurable delay after auto-writes to allow diagnostics to detect potential problems
+- Control the number of terminal output lines to pass to the model when executing commands
 - Runs alongside the original Cline
 
 ## Disclaimer
@@ -78,12 +86,9 @@ Once your merge is successful:
 
 </details>
 
-## Stay Updated!
-Subscribe to our [Github releases](https://github.com/RooVetGit/Roo-Cline/releases) to keep up with the latest updates! You can also view our [CHANGELOG.md](Roo-Cline/CHANGELOG.md) for more details.
-
 ---
 
-# Cline (prev. Claude Dev) – \#1 on OpenRouter
+# Cline (prev. Claude Dev) – [#1 on OpenRouter](https://openrouter.ai/)
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/cline/cline/main/assets/docs/demo.gif" width="100%" />
@@ -93,7 +98,7 @@ Subscribe to our [Github releases](https://github.com/RooVetGit/Roo-Cline/releas
 <table>
 <tbody>
 <td align="center">
-<a href="https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline" target="_blank"><strong>Download on VS Marketplace</strong></a>
+<a href="https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev" target="_blank"><strong>Download on VS Marketplace</strong></a>
 </td>
 <td align="center">
 <a href="https://discord.gg/cline" target="_blank"><strong>Join the Discord</strong></a>
@@ -118,10 +123,10 @@ Thanks to [Claude 3.5 Sonnet's agentic coding capabilities](https://www-cdn.ant
     - Create and edit files + monitor linter/compiler errors along the way, letting him proactively fix issues like missing imports and syntax errors on his own.
     - Execute commands directly in your terminal and monitor their output as he works, letting him e.g., react to dev server issues after editing a file.
     - For web development tasks, Cline can launch the site in a headless browser, click, type, scroll, and capture screenshots + console logs, allowing him to fix runtime errors and visual bugs.
-4. When a task is completed, Cline will present the result to you with a terminal command like `open -a "Google Chrome" index.html`, which you run with a click of a button.
+4. When a task is completed, Cline will present the result to you with a terminal command like `open -a "Google Chrome" index.html`, which you run with a click of a button.
 
 > [!TIP]
-> Use the `CMD/CTRL + Shift + P` shortcut to open the command palette and type "Cline: Open In New Tab" to open the extension as a tab in your editor. This lets you use Cline side-by-side with your file explorer, and see how he changes your workspace more clearly.
+> Use the `CMD/CTRL + Shift + P` shortcut to open the command palette and type "Cline: Open In New Tab" to open the extension as a tab in your editor. This lets you use Cline side-by-side with your file explorer, and see how he changes your workspace more clearly.
 
 ---
 
@@ -129,7 +134,7 @@ Thanks to [Claude 3.5 Sonnet's agentic coding capabilities](https://www-cdn.ant
 
 ### Use any API and Model
 
-Cline supports API providers like OpenRouter, Anthropic, OpenAI, Google Gemini, AWS Bedrock, Azure, and GCP Vertex. You can also configure any OpenAI compatible API, or use a local model through LM Studio/Ollama. If you're using OpenRouter, the extension fetches their latest model list, allowing you to use the newest models as soon as they're available. The extension also now supports Meta 3, 3.1, and 3.2 models via AWS Bedrock.
+Cline supports API providers like OpenRouter, Anthropic, OpenAI, Google Gemini, AWS Bedrock, Azure, and GCP Vertex. You can also configure any OpenAI compatible API, or use a local model through LM Studio/Ollama. If you're using OpenRouter, the extension fetches their latest model list, allowing you to use the newest models as soon as they're available.
 
 The extension also keeps track of total tokens and API usage cost for the entire task loop and individual requests, keeping you informed of spend every step of the way.
 

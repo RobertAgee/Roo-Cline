@@ -1,6 +1,7 @@
 import deepEqual from "fast-deep-equal"
 import React, { memo, useEffect, useMemo, useRef, useState } from "react"
 import { useSize } from "react-use"
+import { useExtensionState } from "../../context/ExtensionStateContext"
 import {
 	BrowserAction,
 	BrowserActionResult,
@@ -19,6 +20,7 @@ interface BrowserSessionRowProps {
 	lastModifiedMessage?: ClineMessage
 	isLast: boolean
 	onHeightChange: (isTaller: boolean) => void
+	isStreaming: boolean
 }
 
 const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
@@ -26,6 +28,11 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 	const prevHeightRef = useRef(0)
 	const [maxActionHeight, setMaxActionHeight] = useState(0)
 	const [consoleLogsExpanded, setConsoleLogsExpanded] = useState(false)
+
+	const { browserViewportSize = "900x600" } = useExtensionState()
+	const [viewportWidth, viewportHeight] = browserViewportSize.split("x").map(Number)
+	const aspectRatio = (viewportHeight / viewportWidth * 100).toFixed(2)
+	const defaultMousePosition = `${Math.round(viewportWidth/2)},${Math.round(viewportHeight/2)}`
 
 	const isLastApiReqInterrupted = useMemo(() => {
 		// Check if last api_req_started is cancelled
@@ -164,13 +171,13 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 	const displayState = isLastPage
 		? {
 				url: currentPage?.currentState.url || latestState.url || initialUrl,
-				mousePosition: currentPage?.currentState.mousePosition || latestState.mousePosition || "700,400",
+				mousePosition: currentPage?.currentState.mousePosition || latestState.mousePosition || defaultMousePosition,
 				consoleLogs: currentPage?.currentState.consoleLogs,
 				screenshot: currentPage?.currentState.screenshot || latestState.screenshot,
 			}
 		: {
 				url: currentPage?.currentState.url || initialUrl,
-				mousePosition: currentPage?.currentState.mousePosition || "700,400",
+				mousePosition: currentPage?.currentState.mousePosition || defaultMousePosition,
 				consoleLogs: currentPage?.currentState.consoleLogs,
 				screenshot: currentPage?.currentState.screenshot,
 			}
@@ -219,9 +226,9 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 	}, [isBrowsing, currentPage?.nextAction?.messages])
 
 	// Use latest click position while browsing, otherwise use display state
-	const mousePosition = isBrowsing ? latestClickPosition || displayState.mousePosition : displayState.mousePosition
+	const mousePosition = isBrowsing ? latestClickPosition || displayState.mousePosition : displayState.mousePosition || defaultMousePosition
 
-	const [browserSessionRow, { height }] = useSize(
+	const [browserSessionRow, { height: rowHeight }] = useSize(
 		<div style={{ padding: "10px 6px 10px 15px", marginBottom: -10 }}>
 			<div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
 				{isBrowsing ? (
@@ -275,9 +282,10 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 
 				{/* Screenshot Area */}
 				<div
+					data-testid="screenshot-container"
 					style={{
 						width: "100%",
-						paddingBottom: "calc(200%/3)",
+						paddingBottom: `${aspectRatio}%`, // height/width ratio
 						position: "relative",
 						backgroundColor: "var(--vscode-input-background)",
 					}}>
@@ -319,8 +327,8 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 						<BrowserCursor
 							style={{
 								position: "absolute",
-								top: `${(parseInt(mousePosition.split(",")[1]) / 600) * 100}%`,
-								left: `${(parseInt(mousePosition.split(",")[0]) / 900) * 100}%`,
+								top: `${(parseInt(mousePosition.split(",")[1]) / viewportHeight) * 100}%`,
+								left: `${(parseInt(mousePosition.split(",")[0]) / viewportWidth) * 100}%`,
 								transition: "top 0.3s ease-out, left 0.3s ease-out",
 							}}
 						/>
@@ -387,13 +395,13 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 	// Height change effect
 	useEffect(() => {
 		const isInitialRender = prevHeightRef.current === 0
-		if (isLast && height !== 0 && height !== Infinity && height !== prevHeightRef.current) {
+		if (isLast && rowHeight !== 0 && rowHeight !== Infinity && rowHeight !== prevHeightRef.current) {
 			if (!isInitialRender) {
-				onHeightChange(height > prevHeightRef.current)
+				onHeightChange(rowHeight > prevHeightRef.current)
 			}
-			prevHeightRef.current = height
+			prevHeightRef.current = rowHeight
 		}
-	}, [height, isLast, onHeightChange])
+	}, [rowHeight, isLast, onHeightChange])
 
 	return browserSessionRow
 }, deepEqual)
@@ -401,6 +409,7 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 interface BrowserSessionRowContentProps extends Omit<BrowserSessionRowProps, "messages"> {
 	message: ClineMessage
 	setMaxActionHeight: (height: number) => void
+	isStreaming: boolean
 }
 
 const BrowserSessionRowContent = ({
@@ -410,6 +419,7 @@ const BrowserSessionRowContent = ({
 	lastModifiedMessage,
 	isLast,
 	setMaxActionHeight,
+	isStreaming,
 }: BrowserSessionRowContentProps) => {
 	const headerStyle: React.CSSProperties = {
 		display: "flex",
@@ -436,6 +446,7 @@ const BrowserSessionRowContent = ({
 								}}
 								lastModifiedMessage={lastModifiedMessage}
 								isLast={isLast}
+								isStreaming={isStreaming}
 							/>
 						</div>
 					)
@@ -550,6 +561,7 @@ const BrowserCursor: React.FC<{ style?: React.CSSProperties }> = ({ style }) => 
 				...style,
 			}}
 			alt="cursor"
+			aria-label="cursor"
 		/>
 	)
 }

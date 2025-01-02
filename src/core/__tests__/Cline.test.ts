@@ -1,6 +1,7 @@
 import { Cline } from '../Cline';
 import { ClineProvider } from '../webview/ClineProvider';
 import { ApiConfiguration } from '../../shared/api';
+import { ApiStreamChunk } from '../../api/transform/stream';
 import * as vscode from 'vscode';
 
 // Mock all MCP-related modules
@@ -121,13 +122,16 @@ jest.mock('vscode', () => {
                 name: 'mock-workspace',
                 index: 0
             }],
-            onDidCreateFiles: jest.fn(() => mockDisposable),
-            onDidDeleteFiles: jest.fn(() => mockDisposable),
-            onDidRenameFiles: jest.fn(() => mockDisposable),
-            onDidSaveTextDocument: jest.fn(() => mockDisposable),
-            onDidChangeTextDocument: jest.fn(() => mockDisposable),
-            onDidOpenTextDocument: jest.fn(() => mockDisposable),
-            onDidCloseTextDocument: jest.fn(() => mockDisposable)
+            createFileSystemWatcher: jest.fn(() => ({
+                onDidCreate: jest.fn(() => mockDisposable),
+                onDidDelete: jest.fn(() => mockDisposable),
+                onDidChange: jest.fn(() => mockDisposable),
+                dispose: jest.fn()
+            })),
+            fs: {
+                stat: jest.fn().mockResolvedValue({ type: 1 }) // FileType.File = 1
+            },
+            onDidSaveTextDocument: jest.fn(() => mockDisposable)
         },
         env: {
             uriScheme: 'vscode',
@@ -248,7 +252,7 @@ describe('Cline', () => {
         // Setup mock API configuration
         mockApiConfig = {
             apiProvider: 'anthropic',
-            apiModelId: 'claude-3-sonnet'
+            apiModelId: 'claude-3-5-sonnet-20241022'
         };
 
         // Mock provider methods
@@ -278,22 +282,222 @@ describe('Cline', () => {
                 mockProvider,
                 mockApiConfig,
                 'custom instructions',
-                false, // diffEnabled
-                'test task', // task
-                undefined, // images
-                undefined  // historyItem
+                false,
+                0.95, // 95% threshold
+                'test task'
             );
 
             expect(cline.customInstructions).toBe('custom instructions');
+            expect(cline.diffEnabled).toBe(false);
+        });
+
+        it('should use default fuzzy match threshold when not provided', () => {
+            const cline = new Cline(
+                mockProvider,
+                mockApiConfig,
+                'custom instructions',
+                true,
+                undefined,
+                'test task'
+            );
+
+            expect(cline.diffEnabled).toBe(true);
+            // The diff strategy should be created with default threshold (1.0)
+            expect(cline.diffStrategy).toBeDefined();
+        });
+
+        it('should use provided fuzzy match threshold', () => {
+            const getDiffStrategySpy = jest.spyOn(require('../diff/DiffStrategy'), 'getDiffStrategy');
+            
+            const cline = new Cline(
+                mockProvider,
+                mockApiConfig,
+                'custom instructions',
+                true,
+                0.9, // 90% threshold
+                'test task'
+            );
+
+            expect(cline.diffEnabled).toBe(true);
+            expect(cline.diffStrategy).toBeDefined();
+            expect(getDiffStrategySpy).toHaveBeenCalledWith('claude-3-5-sonnet-20241022', 0.9);
+            
+            getDiffStrategySpy.mockRestore();
+        });
+
+        it('should pass default threshold to diff strategy when not provided', () => {
+            const getDiffStrategySpy = jest.spyOn(require('../diff/DiffStrategy'), 'getDiffStrategy');
+            
+            const cline = new Cline(
+                mockProvider,
+                mockApiConfig,
+                'custom instructions',
+                true,
+                undefined,
+                'test task'
+            );
+
+            expect(cline.diffEnabled).toBe(true);
+            expect(cline.diffStrategy).toBeDefined();
+            expect(getDiffStrategySpy).toHaveBeenCalledWith('claude-3-5-sonnet-20241022', 1.0);
+            
+            getDiffStrategySpy.mockRestore();
         });
 
         it('should require either task or historyItem', () => {
             expect(() => {
                 new Cline(
                     mockProvider,
-                    mockApiConfig
+                    mockApiConfig,
+                    undefined, // customInstructions
+                    false, // diffEnabled
+                    undefined, // fuzzyMatchThreshold
+                    undefined // task
                 );
             }).toThrow('Either historyItem or task/images must be provided');
+        });
+    });
+
+    describe('getEnvironmentDetails', () => {
+        let originalDate: DateConstructor;
+        let mockDate: Date;
+
+        beforeEach(() => {
+            originalDate = global.Date;
+            const fixedTime = new Date('2024-01-01T12:00:00Z');
+            mockDate = new Date(fixedTime);
+            mockDate.getTimezoneOffset = jest.fn().mockReturnValue(420); // UTC-7
+
+            class MockDate extends Date {
+                constructor() {
+                    super();
+                    return mockDate;
+                }
+                static override now() {
+                    return mockDate.getTime();
+                }
+            }
+            
+            global.Date = MockDate as DateConstructor;
+
+            // Create a proper mock of Intl.DateTimeFormat
+            const mockDateTimeFormat = {
+                resolvedOptions: () => ({
+                    timeZone: 'America/Los_Angeles'
+                }),
+                format: () => '1/1/2024, 5:00:00 AM'
+            };
+
+            const MockDateTimeFormat = function(this: any) {
+                return mockDateTimeFormat;
+            } as any;
+
+            MockDateTimeFormat.prototype = mockDateTimeFormat;
+            MockDateTimeFormat.supportedLocalesOf = jest.fn().mockReturnValue(['en-US']);
+
+            global.Intl.DateTimeFormat = MockDateTimeFormat;
+        });
+
+        afterEach(() => {
+            global.Date = originalDate;
+        });
+
+        it('should include timezone information in environment details', async () => {
+            const cline = new Cline(
+                mockProvider,
+                mockApiConfig,
+                undefined,
+                false,
+                undefined,
+                'test task'
+            );
+
+            const details = await cline['getEnvironmentDetails'](false);
+            
+            // Verify timezone information is present and formatted correctly
+            expect(details).toContain('America/Los_Angeles');
+            expect(details).toMatch(/UTC-7:00/); // Fixed offset for America/Los_Angeles
+            expect(details).toContain('# Current Time');
+            expect(details).toMatch(/1\/1\/2024.*5:00:00 AM.*\(America\/Los_Angeles, UTC-7:00\)/); // Full time string format
+        });
+    
+        describe('API conversation handling', () => {
+            it('should clean conversation history before sending to API', async () => {
+                const cline = new Cline(
+                    mockProvider,
+                    mockApiConfig,
+                    undefined,
+                    false,
+                    undefined,
+                    'test task'
+                );
+    
+                // Mock the API's createMessage method to capture the conversation history
+                const createMessageSpy = jest.fn();
+                const mockStream = {
+                    async *[Symbol.asyncIterator]() {
+                        yield { type: 'text', text: '' };
+                    },
+                    async next() {
+                        return { done: true, value: undefined };
+                    },
+                    async return() {
+                        return { done: true, value: undefined };
+                    },
+                    async throw(e: any) {
+                        throw e;
+                    },
+                    async [Symbol.asyncDispose]() {
+                        // Cleanup
+                    }
+                } as AsyncGenerator<ApiStreamChunk>;
+                
+                jest.spyOn(cline.api, 'createMessage').mockImplementation((...args) => {
+                    createMessageSpy(...args);
+                    return mockStream;
+                });
+
+                // Add a message with extra properties to the conversation history
+                const messageWithExtra = {
+                    role: 'user' as const,
+                    content: [{ type: 'text' as const, text: 'test message' }],
+                    ts: Date.now(),
+                    extraProp: 'should be removed'
+                };
+                cline.apiConversationHistory = [messageWithExtra];
+
+                // Trigger an API request
+                await cline.recursivelyMakeClineRequests([
+                    { type: 'text', text: 'test request' }
+                ]);
+
+                // Get all calls to createMessage
+                const calls = createMessageSpy.mock.calls;
+                
+                // Find the call that includes our test message
+                const relevantCall = calls.find(call =>
+                    call[1]?.some((msg: any) =>
+                        msg.content?.[0]?.text === 'test message'
+                    )
+                );
+
+                // Verify the conversation history was cleaned in the relevant call
+                expect(relevantCall?.[1]).toEqual(
+                    expect.arrayContaining([
+                        {
+                            role: 'user',
+                            content: [{ type: 'text', text: 'test message' }]
+                        }
+                    ])
+                );
+
+                // Verify extra properties were removed
+                const passedMessage = relevantCall?.[1].find((msg: any) =>
+                    msg.content?.[0]?.text === 'test message'
+                );
+                expect(passedMessage).not.toHaveProperty('ts');
+                expect(passedMessage).not.toHaveProperty('extraProp');
+            });
         });
     });
 });

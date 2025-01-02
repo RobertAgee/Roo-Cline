@@ -25,7 +25,8 @@ import BrowserSessionRow from "./BrowserSessionRow"
 import ChatRow from "./ChatRow"
 import ChatTextArea from "./ChatTextArea"
 import TaskHeader from "./TaskHeader"
-import { AudioType } from "../../shared/WebviewMessage"
+import { AudioType } from "../../../../src/shared/WebviewMessage"
+import { validateCommand } from "../../utils/command-validation"
 
 interface ChatViewProps {
 	isHidden: boolean
@@ -37,7 +38,7 @@ interface ChatViewProps {
 export const MAX_IMAGES_PER_MESSAGE = 20 // Anthropic limits to 20 images
 
 const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryView }: ChatViewProps) => {
-	const { version, clineMessages: messages, taskHistory, apiConfiguration, mcpServers, alwaysAllowBrowser, alwaysAllowReadOnly, alwaysAllowWrite, alwaysAllowExecute, alwaysAllowMcp, allowedCommands } = useExtensionState()
+	const { version, clineMessages: messages, taskHistory, apiConfiguration, mcpServers, alwaysAllowBrowser, alwaysAllowReadOnly, alwaysAllowWrite, alwaysAllowExecute, alwaysAllowMcp, allowedCommands, writeDelayMs } = useExtensionState()
 
 	//const task = messages.length > 0 ? (messages[0].say === "task" ? messages[0] : undefined) : undefined) : undefined
 	const task = useMemo(() => messages.at(0), [messages]) // leaving this less safe version here since if the first message is not a task, then the extension is in a bad state and needs to be debugged (see Cline.abort)
@@ -521,23 +522,10 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		return false
 	}, [mcpServers])
 
-	const isAllowedCommand = useCallback((message: ClineMessage | undefined) => {
-		if (message?.type === "ask") {
-			const command = message.text
-			if (!command) {
-				return true
-			}
-
-			// Split command by chaining operators
-			const commands = command.split(/&&|\|\||;|\||\$\(|`/).map(cmd => cmd.trim())
-
-			// Check if all individual commands are allowed
-			return commands.every((cmd) => {
-				const trimmedCommand = cmd.toLowerCase()
-				return allowedCommands?.some((prefix) => trimmedCommand.startsWith(prefix.toLowerCase()))
-			})
-		}
-		return false
+	// Check if a command message is allowed
+	const isAllowedCommand = useCallback((message: ClineMessage | undefined): boolean => {
+		if (message?.type !== "ask") return false
+		return validateCommand(message.text || '', allowedCommands || [])
 	}, [allowedCommands])
 
 	const isAutoApproved = useCallback(
@@ -805,6 +793,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 						isLast={index === groupedMessages.length - 1}
 						lastModifiedMessage={modifiedMessages.at(-1)}
 						onHeightChange={handleRowHeightChange}
+						isStreaming={isStreaming}
 						// Pass handlers for each message in the group
 						isExpanded={(messageTs: number) => expandedRows[messageTs] ?? false}
 						onToggleExpand={(messageTs: number) => {
@@ -827,20 +816,28 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 					lastModifiedMessage={modifiedMessages.at(-1)}
 					isLast={index === groupedMessages.length - 1}
 					onHeightChange={handleRowHeightChange}
+					isStreaming={isStreaming}
 				/>
 			)
 		},
-		[expandedRows, modifiedMessages, groupedMessages.length, toggleRowExpansion, handleRowHeightChange],
+		[expandedRows, modifiedMessages, groupedMessages.length, handleRowHeightChange, isStreaming, toggleRowExpansion],
 	)
 
 	useEffect(() => {
 		// Only proceed if we have an ask and buttons are enabled
 		if (!clineAsk || !enableButtons) return
 
-		if (isAutoApproved(lastMessage)) {
-			handlePrimaryButtonClick()
+		const autoApprove = async () => {
+			if (isAutoApproved(lastMessage)) {
+				// Add delay for write operations
+				if (lastMessage?.ask === "tool" && isWriteToolAction(lastMessage)) {
+					await new Promise(resolve => setTimeout(resolve, writeDelayMs))
+				}
+				handlePrimaryButtonClick()
+			}
 		}
-	}, [clineAsk, enableButtons, handlePrimaryButtonClick, alwaysAllowBrowser, alwaysAllowReadOnly, alwaysAllowWrite, alwaysAllowExecute, alwaysAllowMcp, messages, allowedCommands, mcpServers, isAutoApproved, lastMessage])
+		autoApprove()
+	}, [clineAsk, enableButtons, handlePrimaryButtonClick, alwaysAllowBrowser, alwaysAllowReadOnly, alwaysAllowWrite, alwaysAllowExecute, alwaysAllowMcp, messages, allowedCommands, mcpServers, isAutoApproved, lastMessage, writeDelayMs, isWriteToolAction])
 
 	return (
 		<div

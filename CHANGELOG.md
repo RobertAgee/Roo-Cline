@@ -1,8 +1,93 @@
 # Roo Cline Changelog
 
+## [2.2.38]
+
+-   Add a setting to control the number of terminal output lines to pass to the model when executing commands
+
+## [2.2.36 - 2.2.37]
+
+-   Add a button to delete user messages
+
+## [2.2.35]
+
+-   Allow selection of multiple browser viewport sizes and adjusting screenshot quality
+
+## [2.2.34]
+
+-   Add the DeepSeek provider
+
+## [2.2.33]
+
+-   "Enhance prompt" button (OpenRouter models only for now)
+-   Support listing models for OpenAI compatible providers (thanks @samhvw8!)
+
+## [2.2.32]
+
+-   More efficient workspace tracker
+
+## [2.2.31]
+
+-   Improved logic for auto-approving chained commands
+
+## [2.2.30]
+
+-   Fix bug with auto-approving commands
+
+## [2.2.29]
+
+-   Add configurable delay after auto-writes to allow diagnostics to catch up
+
+## [2.2.28]
+
+-   Use createFileSystemWatcher to more reliably update list of files to @-mention
+
+## [2.2.27]
+
+-   Add the current time to the system prompt and improve browser screenshot quality (thanks @libertyteeth!)
+
+## [2.2.26]
+
+-   Tweaks to preferred language (thanks @yongjer)
+
+## [2.2.25]
+
+-   Add a preferred language dropdown
+
+## [2.2.24]
+
+-   Default diff editing to on for new installs
+
+## [2.2.23]
+
+-   Fix context window for gemini-2.0-flash-thinking-exp-1219 (thanks @student20880)
+
+## [2.2.22]
+
+-   Add gemini-2.0-flash-thinking-exp-1219
+
+## [2.2.21]
+
+-   Take predicted file length into account when detecting omissions
+
+## [2.2.20]
+
+-   Make fuzzy diff matching configurable (and default to off)
+
+## [2.2.19]
+
+-   Add experimental option to use a bigger browser (1280x800)
+
+## [2.2.18]
+
+-   More targeted styling fix for Gemini chats
+
+## [2.2.17]
+
+-   Improved regex for auto-execution of chained commands
+
 ## [2.2.16]
 
--   Incorporate Premshay's [PR](https://github.com/RooVetGit/Roo-Cline/pull/60) to add support for Meta Models via Bedrock (3, 3.1, 3.2) and unified Bedrock calls using BedrockClient and Bedrock Runtime API
+-   Incorporate Premshay's [PR](https://github.com/RooVetGit/Roo-Cline/pull/60) to add support for Amazon Nova and Meta Llama Models via Bedrock (3, 3.1, 3.2) and unified Bedrock calls using BedrockClient and Bedrock Runtime API
 
 ## [2.2.14 - 2.2.15]
 

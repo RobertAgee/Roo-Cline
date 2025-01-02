@@ -17,7 +17,9 @@ export interface ExtensionMessage {
 		| "invoke"
 		| "partialMessage"
 		| "openRouterModels"
+		| "openAiModels"
 		| "mcpServers"
+		| "enhancedPrompt"
 	text?: string
 	action?:
 		| "chatButtonClicked"
@@ -33,6 +35,7 @@ export interface ExtensionMessage {
 	filePaths?: string[]
 	partialMessage?: ClineMessage
 	openRouterModels?: Record<string, ModelInfo>
+	openAiModels?: string[]
 	mcpServers?: McpServer[]
 }
 
@@ -55,6 +58,12 @@ export interface ExtensionState {
 	soundVolume?: number
 	diffEnabled?: boolean
 	currentVoice?: string
+	browserViewportSize?: string
+	screenshotQuality?: number
+	fuzzyMatchThreshold?: number
+	preferredLanguage: string
+	writeDelayMs: number
+	terminalOutputLineLimit?: number
 }
 
 export interface ClineMessage {

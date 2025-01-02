@@ -8,6 +8,7 @@ export type ApiProvider =
 	| "lmstudio"
 	| "gemini"
 	| "openai-native"
+	| "deepseek"
 
 export interface ApiHandlerOptions {
 	apiModelId?: string
@@ -38,6 +39,10 @@ export interface ApiHandlerOptions {
 	openRouterUseMiddleOutTransform?: boolean
 	includeStreamOptions?: boolean
 	setAzureApiVersion?: boolean
+	deepSeekBaseUrl?: string
+	deepSeekApiKey?: string
+	deepSeekModelId?: string
+	includeMaxTokens?: boolean
 }
 
 export type ApiConfiguration = ApiHandlerOptions & {
@@ -381,8 +386,16 @@ export const openAiModelInfoSaneDefaults: ModelInfo = {
 // Gemini
 // https://ai.google.dev/gemini-api/docs/models/gemini
 export type GeminiModelId = keyof typeof geminiModels
-export const geminiDefaultModelId: GeminiModelId = "gemini-2.0-flash-exp"
+export const geminiDefaultModelId: GeminiModelId = "gemini-2.0-flash-thinking-exp-1219"
 export const geminiModels = {
+	"gemini-2.0-flash-thinking-exp-1219": {
+		maxTokens: 8192,
+		contextWindow: 32_767,
+		supportsImages: true,
+		supportsPromptCache: false,
+		inputPrice: 0,
+		outputPrice: 0,
+	},
 	"gemini-2.0-flash-exp": {
 		maxTokens: 8192,
 		contextWindow: 1_048_576,
@@ -478,6 +491,22 @@ export const openAiNativeModels = {
 		supportsPromptCache: false,
 		inputPrice: 0.15,
 		outputPrice: 0.6,
+	},
+} as const satisfies Record<string, ModelInfo>
+
+// DeepSeek
+// https://platform.deepseek.com/docs/api
+export type DeepSeekModelId = keyof typeof deepSeekModels
+export const deepSeekDefaultModelId: DeepSeekModelId = "deepseek-chat"
+export const deepSeekModels = {
+	"deepseek-chat": {
+		maxTokens: 8192,
+		contextWindow: 64_000,
+		supportsImages: false,
+		supportsPromptCache: false,
+		inputPrice: 0.014,  // $0.014 per million tokens
+		outputPrice: 0.28,  // $0.28 per million tokens
+		description: `DeepSeek-V3 achieves a significant breakthrough in inference speed over previous models. It tops the leaderboard among open-source models and rivals the most advanced closed-source models globally.`,
 	},
 } as const satisfies Record<string, ModelInfo>
 

@@ -30,6 +30,7 @@ export interface WebviewMessage {
 		| "openMention"
 		| "cancelTask"
 		| "refreshOpenRouterModels"
+		| "refreshOpenAiModels"
 		| "alwaysAllowBrowser"
 		| "alwaysAllowMcp"
 		| "playSound"
@@ -39,10 +40,20 @@ export interface WebviewMessage {
 		| "soundEnabled"
 		| "soundVolume"
 		| "diffEnabled"
+		| "browserViewportSize"
+		| "screenshotQuality"
 		| "openMcpSettings"
 		| "restartMcpServer"
 		| "toggleToolAlwaysAllow"
 		| "toggleMcpServer"
+		| "fuzzyMatchThreshold"
+		| "preferredLanguage"
+		| "writeDelayMs"
+		| "enhancePrompt"
+		| "enhancedPrompt"
+		| "draggedImages"
+		| "deleteMessage"
+		| "terminalOutputLineLimit"
 	text?: string
 	disabled?: boolean
 	askResponse?: ClineAskResponse
@@ -54,11 +65,11 @@ export interface WebviewMessage {
 	audioType?: AudioType
 	voiceType?: VoiceType
 	voice?: string
-	// For toggleToolAutoApprove
 	serverName?: string
 	toolName?: string
 	alwaysAllow?: boolean
-	
+	dataUrls?: string[]
+	values?: Record<string, any>
 }
 
 export type ClineAskResponse = "yesButtonClicked" | "noButtonClicked" | "messageResponse"

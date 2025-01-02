@@ -247,54 +247,108 @@ describe('ChatView - Auto Approval Tests', () => {
     })
   })
 
-  it('auto-approves write tools when alwaysAllowWrite is enabled', async () => {
-    render(
-      <ExtensionStateContextProvider>
-        <ChatView 
-          isHidden={false}
-          showAnnouncement={false}
-          hideAnnouncement={() => {}}
-          showHistoryView={() => {}}
-        />
-      </ExtensionStateContextProvider>
-    )
+  describe('Write Tool Auto-Approval Tests', () => {
+    it('auto-approves write tools when alwaysAllowWrite is enabled and message is a tool request', async () => {
+      render(
+        <ExtensionStateContextProvider>
+          <ChatView
+            isHidden={false}
+            showAnnouncement={false}
+            hideAnnouncement={() => {}}
+            showHistoryView={() => {}}
+          />
+        </ExtensionStateContextProvider>
+      )
 
-    // First hydrate state with initial task
-    mockPostMessage({
-      alwaysAllowWrite: true,
-      clineMessages: [
-        {
-          type: 'say',
-          say: 'task',
-          ts: Date.now() - 2000,
-          text: 'Initial task'
-        }
-      ]
+      // First hydrate state with initial task
+      mockPostMessage({
+        alwaysAllowWrite: true,
+        clineMessages: [
+          {
+            type: 'say',
+            say: 'task',
+            ts: Date.now() - 2000,
+            text: 'Initial task'
+          }
+        ]
+      })
+
+      // Then send the write tool ask message
+      mockPostMessage({
+        alwaysAllowWrite: true,
+        clineMessages: [
+          {
+            type: 'say',
+            say: 'task',
+            ts: Date.now() - 2000,
+            text: 'Initial task'
+          },
+          {
+            type: 'ask',
+            ask: 'tool',
+            ts: Date.now(),
+            text: JSON.stringify({ tool: 'editedExistingFile', path: 'test.txt' }),
+            partial: false
+          }
+        ]
+      })
+
+      // Wait for the auto-approval message
+      await waitFor(() => {
+        expect(vscode.postMessage).toHaveBeenCalledWith({
+          type: 'askResponse',
+          askResponse: 'yesButtonClicked'
+        })
+      })
     })
 
-    // Then send the write tool ask message
-    mockPostMessage({
-      alwaysAllowWrite: true,
-      clineMessages: [
-        {
-          type: 'say',
-          say: 'task',
-          ts: Date.now() - 2000,
-          text: 'Initial task'
-        },
-        {
-          type: 'ask',
-          ask: 'tool',
-          ts: Date.now(),
-          text: JSON.stringify({ tool: 'editedExistingFile', path: 'test.txt' }),
-          partial: false
-        }
-      ]
-    })
+    it('does not auto-approve write operations when alwaysAllowWrite is enabled but message is not a tool request', () => {
+      render(
+        <ExtensionStateContextProvider>
+          <ChatView
+            isHidden={false}
+            showAnnouncement={false}
+            hideAnnouncement={() => {}}
+            showHistoryView={() => {}}
+          />
+        </ExtensionStateContextProvider>
+      )
 
-    // Wait for the auto-approval message
-    await waitFor(() => {
-      expect(vscode.postMessage).toHaveBeenCalledWith({
+      // First hydrate state with initial task
+      mockPostMessage({
+        alwaysAllowWrite: true,
+        clineMessages: [
+          {
+            type: 'say',
+            say: 'task',
+            ts: Date.now() - 2000,
+            text: 'Initial task'
+          }
+        ]
+      })
+
+      // Then send a non-tool write operation message
+      mockPostMessage({
+        alwaysAllowWrite: true,
+        clineMessages: [
+          {
+            type: 'say',
+            say: 'task',
+            ts: Date.now() - 2000,
+            text: 'Initial task'
+          },
+          {
+            type: 'ask',
+            ask: 'write_operation',
+            ts: Date.now(),
+            text: JSON.stringify({ path: 'test.txt', content: 'test content' }),
+            partial: false
+          }
+        ]
+      })
+
+      // Verify no auto-approval message was sent
+      expect(vscode.postMessage).not.toHaveBeenCalledWith({
         type: 'askResponse',
         askResponse: 'yesButtonClicked'
       })
@@ -415,7 +469,7 @@ describe('ChatView - Auto Approval Tests', () => {
     it('auto-approves chained commands when all parts are allowed', async () => {
       render(
         <ExtensionStateContextProvider>
-          <ChatView 
+          <ChatView
             isHidden={false}
             showAnnouncement={false}
             hideAnnouncement={() => {}}
@@ -429,7 +483,12 @@ describe('ChatView - Auto Approval Tests', () => {
         'npm test && npm run build',
         'npm test; npm run build',
         'npm test || npm run build',
-        'npm test | npm run build'
+        'npm test | npm run build',
+        // Add test for quoted pipes which should be treated as part of the command, not as a chain operator
+        'echo "hello | world"',
+        'npm test "param with | inside" && npm run build',
+        // PowerShell command with Select-String
+        'npm test 2>&1 | Select-String -NotMatch "node_modules" | Select-String "FAIL|Error"'
       ]
 
       for (const command of allowedChainedCommands) {
@@ -438,7 +497,7 @@ describe('ChatView - Auto Approval Tests', () => {
         // First hydrate state with initial task
         mockPostMessage({
           alwaysAllowExecute: true,
-          allowedCommands: ['npm test', 'npm run build'],
+          allowedCommands: ['npm test', 'npm run build', 'echo', 'Select-String'],
           clineMessages: [
             {
               type: 'say',
@@ -452,7 +511,7 @@ describe('ChatView - Auto Approval Tests', () => {
         // Then send the chained command ask message
         mockPostMessage({
           alwaysAllowExecute: true,
-          allowedCommands: ['npm test', 'npm run build'],
+          allowedCommands: ['npm test', 'npm run build', 'echo', 'Select-String'],
           clineMessages: [
             {
               type: 'say',
@@ -483,7 +542,7 @@ describe('ChatView - Auto Approval Tests', () => {
     it('does not auto-approve chained commands when any part is disallowed', () => {
       render(
         <ExtensionStateContextProvider>
-          <ChatView 
+          <ChatView
             isHidden={false}
             showAnnouncement={false}
             hideAnnouncement={() => {}}
@@ -498,15 +557,20 @@ describe('ChatView - Auto Approval Tests', () => {
         'npm test; rm -rf /',
         'npm test || rm -rf /',
         'npm test | rm -rf /',
+        // Test subshell execution using $() and backticks
         'npm test $(echo dangerous)',
-        'npm test `echo dangerous`'
+        'npm test `echo dangerous`',
+        // Test unquoted pipes with disallowed commands
+        'npm test | rm -rf /',
+        // Test PowerShell command with disallowed parts
+        'npm test 2>&1 | Select-String -NotMatch "node_modules" | rm -rf /'
       ]
 
       disallowedChainedCommands.forEach(command => {
         // First hydrate state with initial task
         mockPostMessage({
           alwaysAllowExecute: true,
-          allowedCommands: ['npm test'],
+          allowedCommands: ['npm test', 'Select-String'],
           clineMessages: [
             {
               type: 'say',
@@ -520,7 +584,7 @@ describe('ChatView - Auto Approval Tests', () => {
         // Then send the chained command ask message
         mockPostMessage({
           alwaysAllowExecute: true,
-          allowedCommands: ['npm test'],
+          allowedCommands: ['npm test', 'Select-String'],
           clineMessages: [
             {
               type: 'say',
@@ -544,6 +608,121 @@ describe('ChatView - Auto Approval Tests', () => {
           askResponse: 'yesButtonClicked'
         })
       })
+    })
+
+    it('handles complex PowerShell command chains correctly', async () => {
+      render(
+        <ExtensionStateContextProvider>
+          <ChatView
+            isHidden={false}
+            showAnnouncement={false}
+            hideAnnouncement={() => {}}
+            showHistoryView={() => {}}
+          />
+        </ExtensionStateContextProvider>
+      )
+
+      // Test PowerShell specific command chains
+      const powershellCommands = {
+        allowed: [
+          'npm test 2>&1 | Select-String -NotMatch "node_modules"',
+          'npm test 2>&1 | Select-String "FAIL|Error"',
+          'npm test 2>&1 | Select-String -NotMatch "node_modules" | Select-String "FAIL|Error"'
+        ],
+        disallowed: [
+          'npm test 2>&1 | Select-String -NotMatch "node_modules" | rm -rf /',
+          'npm test 2>&1 | Select-String "FAIL|Error" && del /F /Q *',
+          'npm test 2>&1 | Select-String -NotMatch "node_modules" | Remove-Item -Recurse'
+        ]
+      }
+
+      // Test allowed PowerShell commands
+      for (const command of powershellCommands.allowed) {
+        jest.clearAllMocks()
+
+        mockPostMessage({
+          alwaysAllowExecute: true,
+          allowedCommands: ['npm test', 'Select-String'],
+          clineMessages: [
+            {
+              type: 'say',
+              say: 'task',
+              ts: Date.now() - 2000,
+              text: 'Initial task'
+            }
+          ]
+        })
+
+        mockPostMessage({
+          alwaysAllowExecute: true,
+          allowedCommands: ['npm test', 'Select-String'],
+          clineMessages: [
+            {
+              type: 'say',
+              say: 'task',
+              ts: Date.now() - 2000,
+              text: 'Initial task'
+            },
+            {
+              type: 'ask',
+              ask: 'command',
+              ts: Date.now(),
+              text: command,
+              partial: false
+            }
+          ]
+        })
+
+        await waitFor(() => {
+          expect(vscode.postMessage).toHaveBeenCalledWith({
+            type: 'askResponse',
+            askResponse: 'yesButtonClicked'
+          })
+        })
+      }
+
+      // Test disallowed PowerShell commands
+      for (const command of powershellCommands.disallowed) {
+        jest.clearAllMocks()
+
+        mockPostMessage({
+          alwaysAllowExecute: true,
+          allowedCommands: ['npm test', 'Select-String'],
+          clineMessages: [
+            {
+              type: 'say',
+              say: 'task',
+              ts: Date.now() - 2000,
+              text: 'Initial task'
+            }
+          ]
+        })
+
+        mockPostMessage({
+          alwaysAllowExecute: true,
+          allowedCommands: ['npm test', 'Select-String'],
+          clineMessages: [
+            {
+              type: 'say',
+              say: 'task',
+              ts: Date.now() - 2000,
+              text: 'Initial task'
+            },
+            {
+              type: 'ask',
+              ask: 'command',
+              ts: Date.now(),
+              text: command,
+              partial: false
+            }
+          ]
+        })
+
+        expect(vscode.postMessage).not.toHaveBeenCalledWith({
+          type: 'askResponse',
+          askResponse: 'yesButtonClicked'
+        })
+      }
     })
   })
 })
