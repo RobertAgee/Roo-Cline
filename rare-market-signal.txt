@@ -1,0 +1,542 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © RobAgrees
+
+//@version=4
+study("The Indicator v3", format=format.price, precision=2, overlay=false)
+
+tf2 = input('', 'Timeframe2', input.resolution)
+tf3 = input('', 'Timeframe3', input.resolution)
+
+ticker_id = input(title="Symbol", type=input.symbol, defval="AMZN")
+// Split the string by ':'
+split_parts = str.split(ticker_id, ":")
+// Extract the second part (symbol)
+symbol = array.get(split_parts, 1)
+height_value = input(title="Indicator Height", type=input.integer, defval=0, minval=0)
+text_color = input(title="Text Color", type=input.color, defval = color.silver)
+sell_signal_on = input(title="Turn on Sell Signals", type = input.bool, defval = false)
+emaperiod = input(8, 'EMA Period')
+stochperiod = input(13, 'Stoch Period')
+smoothcoeff = 2.6/(1+emaperiod)
+
+
+src1 = input(close, title="External Correlation", type=input.source)
+corsrc2 = input(title="Internal Correlation", defval="AvgM", options=["AvgM", "AvgH", "AvgD", "Avg"])
+corlen = input(2, title="Correlation Length", minval=1)
+src2 = input(title="Calculation", defval="Close", options=["Close", "ROC Close", "Volume", "RVI", "C-O", "H-L", "Delta", "ALL"])
+f1 = stoch(close, high, low, 2)
+f2a = roc(close, 2)
+f2 = stoch(f2a, f2a, f2a, 2)
+f3 = stoch(volume, volume, volume, 2)
+length = input(2, minval=1),
+len = 2
+stddev = stdev(src1, length)
+
+org = iff((src2 == "Close"), src1, 
+     iff((src2 == "ROC Close"), f2a, 
+     iff((src2 == "Volume"), volume, 
+     iff((src2 == "RSI"), rsi(src1, 2),
+     iff((src2 == "RVI"), stdev(src1, length),
+     iff((src2 == "C-O"), (close-open),
+     iff((src2 == "H-L"), (barssince(highest(src1,2))),
+     iff((src2 == "Delta"), (src1-src1[1]),
+     iff((src2 == "ALL"), avg(f1, f2, f3), na)))))))))
+sm = input(title="Display Minutes", type=input.bool, defval=false)
+sh = input(title="Display Hours", type=input.bool, defval=false)
+sd = input(title="Display Days", type=input.bool, defval=false)
+sa1 = input(title="Display AverageM", type=input.bool, defval=false)
+sa2 = input(title="Display AverageH", type=input.bool, defval=false)
+sa3 = input(title="Display AverageD", type=input.bool, defval=false)
+sa = input(title="Display Average", type=input.bool, defval=false)
+crr = input(title="Display Correlation", type=input.bool, defval=true)
+//Settings Section===========================================================
+rsec = input(title="====== Settings ======", type=input.bool, defval=true)
+
+singlestoch = input(title="Single Stoch Average", defval="RMA", options=["SMA", "HMA", "VWMA", "RMA", "EMA", "None"])
+sss = input(0, title="SS Step Size", type=input.integer)
+
+//================================================
+mapreset = input(title="Moving Average", defval="EMA", options=["SMA", "HMA", "VWMA", "RMA", "EMA", "None"])
+mapreset2 = input(title="MA Field Average", defval="SMA", options=["SMA", "HMA", "VWMA", "RMA", "EMA", "None"])
+
+mastart = input(2, title="MA Start Smooth", minval=1)
+mastep = input(3, title="MA Smooth Step Size") 
+maasmooth = input(2, title="MA Average Smooth", minval=1)
+stoch0 = input(7, title="SStoch Periods", type=input.integer, minval=2)
+spreset = input(title="SStoch Averaging Type", defval="RMA", options=["SMA", "HMA", "VWMA", "RMA", "EMA", "None"])
+stosmooth   = input(7, title="SStoch Averaging Periods", type=input.integer, minval=2)
+
+
+n1 = mastart
+n2 = mastart+(mastep*1) 
+n3 = mastart+(mastep*2) 
+n4 = mastart+(mastep*3) 
+n5 = mastart+(mastep*4) 
+
+n6 = mastart+(mastep*5) 
+n7 = mastart+(mastep*6) 
+n8 = mastart+(mastep*7) 
+n9 = mastart+(mastep*8) 
+n10 = mastart+(mastep*9) 
+
+n11 = mastart+(mastep*10) 
+n12 = mastart+(mastep*11) 
+n13 = mastart+(mastep*12) 
+n14 = mastart+(mastep*13) 
+n15 = mastart+(mastep*14) 
+
+n16 = mastart+(mastep*15) 
+n17 = mastart+(mastep*16) 
+n18 = mastart+(mastep*17) 
+n19 = mastart+(mastep*18) 
+n20 = mastart+(mastep*19) 
+
+n21 = mastart+(mastep*20) 
+n22 = mastart+(mastep*21) 
+n23 = mastart+(mastep*22) 
+n24 = mastart+(mastep*23) 
+n25 = mastart+(mastep*24) 
+
+mafilter(_src, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, nusmooth) => 
+    ma1 = (ema(_src,  n1))
+    ma2 = (ema(_src,  n2))
+    ma3 = (ema(_src,  n3))
+    ma4 = (ema(_src,  n4))
+    ma5 = (ema(_src,  n5))
+    ma6 = (ema(_src,  n6))
+    ma7 = (ema(_src,  n7))
+    ma8 = (ema(_src,  n8))
+    ma9 = (ema(_src,  n9))
+    ma10 = (ema(_src, n10))
+    ma11 = (ema(_src, n11))
+    ma12 = (ema(_src, n12))
+    ma13 = (ema(_src, n13))
+    ma14 = (ema(_src, n14))
+    ma15 = (ema(_src, n15))
+    ma16 = (ema(_src, n16))
+    ma17 = (ema(_src, n17))
+    ma18 = (ema(_src, n18))
+    ma19 = (ema(_src, n19))
+    ma20 = (ema(_src, n20))
+    ma21 = (ema(_src, n21))
+    ma22 = (ema(_src, n22))
+    ma23 = (ema(_src, n23))
+    ma24 = (ema(_src, n24))
+    ma25 = (ema(_src, n25))
+    maavg1 = avg(ma1,ma2,ma3,ma4,ma5)
+    maavg2 = avg(ma6,ma7,ma8,ma9,ma10)
+    maavg3 = avg(ma11,ma12,ma13,ma14,ma15)
+    maavg4 = avg(ma16,ma17,ma18,ma19,ma20)
+    maavg5 = avg(ma21,ma22,ma23,ma24,ma25)
+    maaverage = (avg(maavg1, maavg2, maavg3, maavg4, maavg5))
+    maaSSA = iff((mapreset2 == "SMA"), (sma(maaverage, (nusmooth))),
+                 iff((mapreset2 == "HMA"), (hma(maaverage, (nusmooth))), 
+                 iff((mapreset2 == "VWMA"), (vwma(maaverage, (nusmooth))),
+                 iff((mapreset2 == "RMA"), (rma(maaverage, (nusmooth))), 
+                 iff((mapreset2 == "EMA"), (ema(maaverage, (nusmooth))), 
+                 iff((mapreset2 == "None"), (maaverage), na)))))) 
+    sto1 = stoch(maaSSA, maaSSA, maaSSA, stoch0)
+    ss1 = iff((spreset == "SMA"), (sma(sto1, stosmooth)), 
+         iff((spreset == "HMA"), (hma(sto1, stosmooth)), 
+         iff((spreset == "VWMA"), (vwma(sto1, stosmooth)), 
+         iff((spreset == "RMA"), (rma(sto1, stosmooth)), 
+         iff((spreset == "EMA"), (ema(sto1, stosmooth)), 
+         iff((spreset == "None"), (sto1), na))))))
+
+// ss1 = mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth)
+// ss2 = security(ticker_id, '5', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*24), barmerge.gaps_on, barmerge.lookahead_off)
+// ss3 = security(ticker_id, '15', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*24), barmerge.gaps_on, barmerge.lookahead_off)+(sss*2)
+// ss4 = security(ticker_id, '30', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*24), barmerge.gaps_on, barmerge.lookahead_off)+(sss*3)
+// ss5 = security(ticker_id, '60', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*24), barmerge.gaps_on, barmerge.lookahead_off)+(sss*4)
+// ss6 = security(ticker_id, '120', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*12), barmerge.gaps_on, barmerge.lookahead_off)+(sss*5)
+// ss7 = security(ticker_id, '240', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*6), barmerge.gaps_on, barmerge.lookahead_off)+(sss*6)
+// ss8 = security(ticker_id, '360', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*4), barmerge.gaps_on, barmerge.lookahead_off)+(sss*7)
+// ss9 = security(ticker_id, '480', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*3), barmerge.gaps_on, barmerge.lookahead_off)+(sss*8)
+// ss10 = security(ticker_id, '720', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth*2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*9)
+ss11 = security(ticker_id, '1D', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth), barmerge.gaps_on, barmerge.lookahead_off)+(sss*10)
+ss12 = security(ticker_id, '3D', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 3), barmerge.gaps_on, barmerge.lookahead_off)+(sss*11)
+ss13 = security(ticker_id, '1W', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*12)
+ss14 = security(ticker_id, '2W', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*13)
+ss15 = security(ticker_id, '1M', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+
+// ss112 = security(ticker_id, '1D', mafilter(volume, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth), barmerge.gaps_on, barmerge.lookahead_off)+(sss*10)
+// ss122 = security(ticker_id, '3D', mafilter(volume, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 3), barmerge.gaps_on, barmerge.lookahead_off)+(sss*11)
+// ss132 = security(ticker_id, '1W', mafilter(volume, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*12)
+// ss142 = security(ticker_id, '2W', mafilter(volume, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*13)
+// ss152 = security(ticker_id, '1M', mafilter(volume, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+
+ss113 = security(ticker_id, '1D', mafilter(close-close[1], mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth), barmerge.gaps_on, barmerge.lookahead_off)+(sss*10)
+ss123 = security(ticker_id, '3D', mafilter(close-close[1], mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 3), barmerge.gaps_on, barmerge.lookahead_off)+(sss*11)
+ss133 = security(ticker_id, '1W', mafilter(close-close[1], mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*12)
+ss143 = security(ticker_id, '2W', mafilter(close-close[1], mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*13)
+ss153 = security(ticker_id, '1M', mafilter(close-close[1], mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+
+ss114 = security(ticker_id, '1D', mafilter(stddev, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, maasmooth), barmerge.gaps_on, barmerge.lookahead_off)+(sss*10)
+ss124 = security(ticker_id, '3D', mafilter(stddev, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 3), barmerge.gaps_on, barmerge.lookahead_off)+(sss*11)
+ss134 = security(ticker_id, '1W', mafilter(stddev, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*12)
+ss144 = security(ticker_id, '2W', mafilter(stddev, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*13)
+ss154 = security(ticker_id, '1M', mafilter(stddev, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+
+
+// ss16 = security(ticker_id, '', mafilter(org, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+// ss17 = security(ticker_id, '', mafilter(volume, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+// ss18 = security(ticker_id, '', mafilter(close-close[1], mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+// ss19 = security(ticker_id, '', mafilter(stddev, mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+
+// ss20 = security(ticker_id, '60', (ss5-ss5[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss21 = security(ticker_id, '120', (ss6-ss6[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss22 = security(ticker_id, '240', (ss7-ss7[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss23 = security(ticker_id, '360', (ss8-ss8[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss24 = security(ticker_id, '480', (ss9-ss9[1]), barmerge.gaps_on, barmerge.lookahead_off)
+
+// ss25 = security(ticker_id, '720', (ss10-ss10[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss26 = security(ticker_id, '1D', (ss11-ss11[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss27 = security(ticker_id, '3D', (ss12-ss12[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss28 = security(ticker_id, '1W', (ss13-ss13[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss29 = security(ticker_id, '2W', (ss14-ss14[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss30 = security(ticker_id, '1M', (ss15-ss15[1]), barmerge.gaps_on, barmerge.lookahead_off)
+
+// ss262 = security(ticker_id, '1D', (ss112-ss112[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss272 = security(ticker_id, '3D', (ss122-ss122[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss282 = security(ticker_id, '1W', (ss132-ss132[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss292 = security(ticker_id, '2W', (ss142-ss142[1]), barmerge.gaps_on, barmerge.lookahead_off)
+// ss302 = security(ticker_id, '1M', (ss152-ss152[1]), barmerge.gaps_on, barmerge.lookahead_off)
+
+ss263 = security(ticker_id, '1D', (ss113-ss113[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss273 = security(ticker_id, '3D', (ss123-ss123[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss283 = security(ticker_id, '1W', (ss133-ss133[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss293 = security(ticker_id, '2W', (ss143-ss143[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss303 = security(ticker_id, '1M', (ss153-ss153[1]), barmerge.gaps_on, barmerge.lookahead_off)
+
+ss264 = security(ticker_id, '1D', (ss114-ss114[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss274 = security(ticker_id, '3D', (ss124-ss124[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss284 = security(ticker_id, '1W', (ss134-ss134[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss294 = security(ticker_id, '2W', (ss144-ss144[1]), barmerge.gaps_on, barmerge.lookahead_off)
+ss304 = security(ticker_id, '1M', (ss154-ss154[1]), barmerge.gaps_on, barmerge.lookahead_off)
+
+ss295 = security(ticker_id, '1W', mafilter(((close-close[1])/abs(ss134-ss134[1])), mapreset2, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, stoch0, spreset, stosmooth, 2), barmerge.gaps_on, barmerge.lookahead_off)+(sss*14)
+ss305 = security(ticker_id, '1W', (ss295-ss295[1]), barmerge.gaps_on, barmerge.lookahead_off)
+
+
+
+// longCondition1 = if(crossover(ss20,0))
+//     1
+// else
+//     na
+// longCondition2 = if(crossover(ss21,0))
+//     1
+// else
+//     na
+// longCondition3 = if(crossover(ss22,0))
+//     1
+// else
+//     na
+// longCondition4 = if(crossover(ss23,0))
+//     1
+// else
+//     na
+// longCondition5 = if(crossover(ss24,0))
+//     1
+// else
+//     na
+// longCondition6 = if(crossover(ss25,0))
+//     1
+// else
+//     na
+longCondition7 = if(crossover(ss26,0))
+    1
+else
+    na
+longCondition8 = if(crossover(ss27,0))
+    1
+else
+    na    
+longCondition9 = if(crossover(ss28,0))
+    1
+else
+    na 
+longCondition10 = if(crossover(ss29,0))
+    1
+else
+    na 
+longCondition11 = if(crossover(ss30,0))
+    1
+else
+    na    
+
+// longCondition72 = if(crossover(ss262,0))
+//     1
+// else
+//     na
+// longCondition82 = if(crossover(ss272,0))
+//     1
+// else
+//     na    
+// longCondition92 = if(crossover(ss282,0))
+//     1
+// else
+//     na 
+// longCondition102 = if(crossover(ss292,0))
+//     1
+// else
+//     na 
+// longCondition112 = if(crossover(ss302,0))
+//     1
+// else
+//     na
+
+longCondition73 = if(crossover(ss263,0))
+    1
+else
+    na
+longCondition83 = if(crossover(ss273,0))
+    1
+else
+    na    
+longCondition93 = if(crossover(ss283,0))
+    1
+else
+    na 
+longCondition103 = if(crossover(ss293,0))
+    1
+else
+    na 
+longCondition113 = if(crossover(ss303,0))
+    1
+else
+    na
+
+longCondition74 = if(crossover(ss264,0))
+    1
+else
+    na
+longCondition84 = if(crossover(ss274,0))
+    1
+else
+    na    
+longCondition94 = if(crossover(ss284,0))
+    1
+else
+    na 
+longCondition104 = if(crossover(ss294,0))
+    1
+else
+    na 
+longCondition114 = if(crossover(ss304,0))
+    1
+else
+    na
+
+shortCondition7 = if(crossunder(ss26,0))
+    1
+else
+    na
+shortCondition8 = if(crossunder(ss27,0))
+    1
+else
+    na    
+shortCondition9 = if(crossunder(ss28,0))
+    1
+else
+    na 
+shortCondition10 = if(crossunder(ss29,0))
+    1
+else
+    na 
+shortCondition11 = if(crossunder(ss30,0))
+    1
+else
+    na    
+
+// shortCondition72 = if(crossunder(ss262,0))
+//     1
+// else
+//     na
+// shortCondition82 = if(crossunder(ss272,0))
+//     1
+// else
+//     na    
+// shortCondition92 = if(crossunder(ss282,0))
+//     1
+// else
+//     na 
+// shortCondition102 = if(crossunder(ss292,0))
+//     1
+// else
+//     na 
+// shortCondition112 = if(crossunder(ss302,0))
+//     1
+// else
+//     na
+
+shortCondition73 = if(crossunder(ss263,0))
+    1
+else
+    na
+shortCondition83 = if(crossunder(ss273,0))
+    1
+else
+    na    
+shortCondition93 = if(crossunder(ss283,0))
+    1
+else
+    na 
+shortCondition103 = if(crossunder(ss293,0))
+    1
+else
+    na 
+shortCondition113 = if(crossunder(ss303,0))
+    1
+else
+    na
+
+shortCondition74 = if(crossunder(ss264,0))
+    1
+else
+    na
+shortCondition84 = if(crossunder(ss274,0))
+    1
+else
+    na    
+shortCondition94 = if(crossunder(ss284,0))
+    1
+else
+    na 
+shortCondition104 = if(crossunder(ss294,0))
+    1
+else
+    na 
+shortCondition114 = if(crossunder(ss304,0))
+    1
+else
+    na
+// shortCondition1 = if(crossunder(ss20,0))
+//     1
+// else
+//     na
+// shortCondition2 = if(crossunder(ss21,0))
+//     1
+// else
+//     na
+// shortCondition3 = if(crossunder(ss22,0))
+//     1
+// else
+//     na
+// shortCondition4 = if(crossunder(ss23,0))
+//     1
+// else
+//     na
+// shortCondition5 = if(crossunder(ss24,0))
+//     1
+// else
+//     na
+// shortCondition6 = if(crossunder(ss25,0))
+//     1
+// else
+//     na
+// shortCondition7 = if(crossunder(ss26,0))
+//     1
+// else
+//     na
+// shortCondition8 = if(crossunder(ss27,0))
+//     1
+// else
+//     na    
+// shortCondition9 = if(crossunder(ss28,0))
+//     1
+// else
+//     na 
+// shortCondition10 = if(crossunder(ss29,0))
+//     1
+// else
+//     na 
+// shortCondition11 = if(crossunder(ss30,0))
+//     1
+// else
+//     na    
+
+
+// longCondition5 = if(crossover(ss30,0) and ss29[1] < 50)
+//     1
+// else
+//     na
+// // shortCondition = if(out5 < 0 and out5[1] >= 0)
+// //     1
+// // else
+// //     na
+
+// shortCondition = if(crossunder(ss30, 0))
+//     1
+// else
+//     na
+
+// plotshape((shortCondition11*120),title="short 1M", style=shape.circle, location=location.absolute, color=#e040fb, size=size.small)
+// plotshape((shortCondition10*110),title="short 2W", style=shape.circle, location=location.absolute, color=#9c27b0, size=size.small)
+// plotshape((shortCondition9*100),title="short 1W", style=shape.circle, location=location.absolute, color=#7961dc, size=size.small)
+// plotshape((shortCondition8*90),title="short 3D", style=shape.circle, location=location.absolute, color=#2e88f2, size=size.small)
+// plotshape((shortCondition7*85),title="short 1D", style=shape.circle, location=location.absolute, color=#008ef0, size=size.small)
+
+// plotshape((shortCondition6*80),title="short 12H", style=shape.circle, location=location.absolute, color=#0093ec, size=size.small)
+// plotshape((shortCondition5*75),title="short 6H", style=shape.circle, location=location.absolute, color=#0097e6, size=size.small)
+// plotshape((shortCondition4*70),title="short 4H", style=shape.circle, location=location.absolute, color=#009ae0, size=size.small)
+// plotshape((shortCondition3*65),title="short 3H", style=shape.circle, location=location.absolute, color=#009dd8, size=size.small)
+// plotshape((shortCondition2*60),title="short 2H", style=shape.circle, location=location.absolute, color=#00a0d0, size=size.small)
+// plotshape((shortCondition1*55),title="short 1H", style=shape.circle, location=location.absolute, color=#00a2c8, size=size.small)
+
+// plotshape((longCondition1*50),title="long 1H", style=shape.circle, location=location.absolute, color=#00A4C0, size=size.small)
+// plotshape((longCondition2*45),title="long 2H", style=shape.circle, location=location.absolute, color=#00C0A4, size=size.small)
+// plotshape((longCondition3*40),title="long 3H", style=shape.circle, location=location.absolute, color=#00D969, size=size.small)
+// plotshape((longCondition4*35),title="long 4H", style=shape.circle, location=location.absolute, color=#00FF34, size=size.small)
+// plotshape((longCondition5*30),title="long 6H", style=shape.circle, location=location.absolute, color=#00FF00, size=size.small)
+
+// plotshape((longCondition6*25),title="long 12H", style=shape.circle, location=location.absolute, color=#34D900, size=size.small)
+// plotshape((longCondition7*20),title="long 1D", style=shape.circle, location=location.absolute, color=#69C000, size=size.small)
+// plotshape((longCondition8*15),title="long 3D", style=shape.circle, location=location.absolute, color=color.yellow, size=size.small)
+// plotshape((longCondition9*10),title="long 1W", style=shape.circle, location=location.absolute, color=color.orange, size=size.small)
+// plotshape((longCondition10*5),title="long 2W", style=shape.circle, location=location.absolute, color=#D93400, size=size.small)
+// plotshape((longCondition11*0),title="long 1M", style=shape.circle, location=location.absolute, color=color.maroon, size=size.small)
+s133 = fixnan(ss133)
+longSignal = if(((longCondition113 == 1 or longCondition103 == 1 or longCondition93 == 1 or longCondition83 == 1 or longCondition73 == 1) and (longCondition114 == 1 or longCondition104 == 1 or longCondition94 == 1 or longCondition84 == 1 or longCondition74 == 1)) or ((longCondition84 == 1 or longCondition94 == 1) and s133 > s133[1]))
+    1
+else
+    na
+if(((longCondition113 == 1 or longCondition103 == 1 or longCondition93 == 1 or longCondition83 == 1) and (longCondition114 == 1 or longCondition104 == 1 or longCondition94 == 1 or longCondition84 == 1)) or ((longCondition84 == 1 or longCondition94 == 1) and s133 > s133[1]))
+    report = array.new_string(0)
+    array.push(report, "\"" + symbol + "\"")
+    alert("{ \"buy\" : "+ tostring(report) + ", \"signal_type\" : \"rare\"}", alert.freq_once_per_bar_close)
+
+shortSignal = if(((shortCondition113 == 1 or shortCondition103 == 1 or shortCondition93 == 1 or shortCondition83 == 1 or shortCondition73 == 1) and (longCondition114 == 1 or longCondition104 == 1 or longCondition94 == 1 or longCondition84 == 1 or longCondition74 == 1)) or ((longCondition84 == 1 or longCondition94 == 1) and s133 < s133[1]) or (crossunder(ss305, 0)))
+    1
+else
+    na
+
+if(((shortCondition113 == 1 or shortCondition103 == 1 or shortCondition93 == 1 or shortCondition83 == 1) and (longCondition114 == 1 or longCondition104 == 1 or longCondition94 == 1 or longCondition84 == 1)) or ((longCondition84 == 1 or longCondition94 == 1) and s133 < s133[1]) or (crossunder(ss305, 0)))
+    report = array.new_string(0)
+    array.push(report, "\"" + symbol + "\"")
+    alert("{ \"sell\" : "+ tostring(report) + ", \"signal_type\" : \"rare\"}", alert.freq_once_per_bar_close)
+
+if (longSignal == 1 and shortSignal == 1)
+    longSignal := na
+    shortSignal := na
+    
+if (sell_signal_on == false)
+    shortSignal := na
+
+plotshape((shortSignal*height_value),title="short", style=shape.circle, location=location.absolute, color=color.red, size=size.small)
+plotshape((longSignal*height_value),title="long", style=shape.circle, location=location.absolute, color=color.green, size=size.small)
+
+hline(height_value, color=color.new(text_color, 25), linestyle = hline.style_dotted)
+label1 = label.new(bar_index+5, height_value, text=string(symbol), style=label.style_label_left, textcolor=text_color, size=size.normal, color=color.rgb(0, 0, 0, 100), xloc=xloc.bar_index, yloc=yloc.price)
+label.delete(label1[1])
+
+// report = array.new_string(0)
+// if((longSignal*height_value) > 0)
+//     array.push(report, "\"" + symbol + "\"")
+    
+// report2 = array.new_string(0)
+// if((shortSignal*height_value) > 0)
+//     array.push(report2, "\"" + symbol + "\"")
+
+
+// if array.size(report) > 0 or array.size(report2) > 0
+//     alert("{ \"buy\" : "+ tostring(report) + ", \"sell\" : " + tostring(report2) + ", \"signal_type\" : \"rare\"}", alert.freq_once_per_bar_close)

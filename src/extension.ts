@@ -6,6 +6,8 @@ import { ClineProvider } from "./core/webview/ClineProvider"
 import { createClineAPI } from "./exports"
 import "./utils/path" // necessary to have access to String.prototype.toPosix
 import { DIFF_VIEW_URI_SCHEME } from "./integrations/editor/DiffViewProvider"
+import { skipAudio, cancelAudio } from './utils/voice';
+
 
 /*
 Built using https://github.com/microsoft/vscode-webview-ui-toolkit
@@ -90,8 +92,21 @@ export function activate(context: vscode.ExtensionContext) {
 		// Lock the editor group so clicking on files doesn't open them over the panel
 		await delay(100)
 		await vscode.commands.executeCommand("workbench.action.lockEditorGroup")
-	}
 
+
+	}
+	const skipAudioCommand = vscode.commands.registerCommand('extension.skipAudio', () => {
+		skipAudio();
+		vscode.window.showInformationMessage('Skipping audio...');
+	});
+
+	const cancelAudioCommand = vscode.commands.registerCommand('extension.cancelAudio', () => {
+		cancelAudio();
+		vscode.window.showInformationMessage('Canceling audio playback...');
+	});
+	
+	context.subscriptions.push(skipAudioCommand, cancelAudioCommand);
+	
 	context.subscriptions.push(vscode.commands.registerCommand("roo-cline.popoutButtonClicked", openClineInNewTab))
 	context.subscriptions.push(vscode.commands.registerCommand("roo-cline.openInNewTab", openClineInNewTab))
 

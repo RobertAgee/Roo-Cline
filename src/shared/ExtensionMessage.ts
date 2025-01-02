@@ -51,8 +51,10 @@ export interface ExtensionState {
 	uriScheme?: string
 	allowedCommands?: string[]
 	soundEnabled?: boolean
+	voiceEnabled?: boolean
 	soundVolume?: number
 	diffEnabled?: boolean
+	currentVoice?: string
 }
 
 export interface ClineMessage {

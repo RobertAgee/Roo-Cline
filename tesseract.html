@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating Tesseract</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .scene {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            transform-style: preserve-3d;
+        }
+
+        .tesseract {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        .cube {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff,
+                       0 0 20px rgba(0, 255, 255, 0.5);
+            opacity: 0.6;
+            background: rgba(0, 255, 255, 0.1);
+            transform-style: preserve-3d;
+            backface-visibility: visible;
+            transition: all 0.3s ease;
+        }
+
+        .edge {
+            position: absolute;
+            background: #00ffff;
+            box-shadow: 0 0 10px #00ffff,
+                       0 0 20px rgba(0, 255, 255, 0.5);
+            opacity: 0.8;
+        }
+
+        .vertex {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #fff,
+                       0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center,
+                rgba(0, 255, 255, 0.2) 0%,
+                transparent 70%
+            );
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #00ffff;
+            font-family: Arial, sans-serif;
+        }
+
+        .slider {
+            width: 200px;
+            margin: 10px;
+            -webkit-appearance: none;
+            background: rgba(0, 255, 255, 0.2);
+            height: 2px;
+            border-radius: 1px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00ffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle at center,
+                rgba(0, 255, 255, 0.8) 0%,
+                transparent 70%
+            );
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="tesseract">
+            <div class="cube inner"></div>
+            <div class="cube outer"></div>
+        </div>
+        <div class="particles"></div>
+        <div class="glow"></div>
+    </div>
+
+    <div class="controls">
+        <div class="slider-container">
+            <label>3D Rotation</label>
+            <input type="range" min="0" max="100" value="50" class="slider" id="rotation3d">
+        </div>
+        <div class="slider-container">
+            <label>4D Rotation</label>
+            <input type="range" min="0" max="100" value="50" class="slider" id="rotation4d">
+        </div>
+    </div>
+
+    <script>
+        const scene = document.querySelector('.scene');
+        const tesseract = document.querySelector('.tesseract');
+        const innerCube = document.querySelector('.cube.inner');
+        const outerCube = document.querySelector('.cube.outer');
+        const particles = document.querySelector('.particles');
+
+        let rotation3d = 0;
+        let rotation4d = 0;
+        let autoRotate = true;
+
+        // Create cube faces
+        function createCube(cube, size) {
+            const positions = [
+                { transform: `translateZ(${size}px)` },
+                { transform: `translateZ(${-size}px) rotateY(180deg)` },
+                { transform: `translateX(${-size}px) rotateY(-90deg)` },
+                { transform: `translateX(${size}px) rotateY(90deg)` },
+                { transform: `translateY(${-size}px) rotateX(90deg)` },
+                { transform: `translateY(${size}px) rotateX(-90deg)` }
+            ];
+
+            positions.forEach(pos => {
+                const face = document.createElement('div');
+                face.className = 'face';
+                face.style.transform = pos.transform;
+                cube.appendChild(face);
+            });
+        }
+
+        // Create edges between vertices
+        function createEdges(cube, size) {
+            const edges = [
+                // Front face edges
+                { width: '100%', height: '2px', transform: `translateY(${-size}px)` },
+                { width: '100%', height: '2px', transform: `translateY(${size}px)` },
+                { width: '2px', height: '100%', transform: `translateX(${-size}px)` },
+                { width: '2px', height: '100%', transform: `translateX(${size}px)` }
+            ];
+
+            edges.forEach(edge => {
+                const el = document.createElement('div');
+                el.className = 'edge';
+                Object.assign(el.style, edge);
+                cube.appendChild(el);
+            });
+        }
+
+        // Create vertices
+        function createVertices(cube, size) {
+            const vertices = [
+                { left: -size, top: -size },
+                { left: size, top: -size },
+                { left: -size, top: size },
+                { left: size, top: size }
+            ];
+
+            vertices.forEach(vertex => {
+                const el = document.createElement('div');
+                el.className = 'vertex';
+                el.style.left = `${vertex.left + size}px`;
+                el.style.top = `${vertex.top + size}px`;
+                cube.appendChild(el);
+            });
+        }
+
+        // Initialize cubes
+        createCube(innerCube, 50);
+        createCube(outerCube, 100);
+        createEdges(innerCube, 50);
+        createEdges(outerCube, 100);
+        createVertices(innerCube, 50);
+        createVertices(outerCube, 100);
+
+        // Create particles
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            const size = 2 + Math.random() * 4;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * 100;
+            const duration = 1 + Math.random() * 2;
+            
+            particle.style.left = '50%';
+            particle.style.top = '50%';
+            particle.style.transform = `translate(-50%, -50%) rotate(${angle}rad) translateX(${distance}px)`;
+            particle.style.opacity = '0';
+            particle.style.transition = `all ${duration}s ease-out`;
+            
+            particles.appendChild(particle);
+            
+            requestAnimationFrame(() => {
+                particle.style.opacity = '1';
+                particle.style.transform = `translate(-50%, -50%) rotate(${angle}rad) translateX(${distance * 2}px)`;
+            });
+            
+            setTimeout(() => particle.remove(), duration * 1000);
+        }
+
+        // Animation loop
+        function animate() {
+            if (autoRotate) {
+                rotation3d += 0.5;
+                rotation4d += 0.3;
+            }
+
+            const scale = Math.sin(rotation4d * Math.PI / 180) * 0.3 + 0.7;
+            
+            innerCube.style.transform = `
+                rotateX(${rotation3d}deg)
+                rotateY(${rotation3d * 0.5}deg)
+                rotateZ(${rotation3d * 0.3}deg)
+                scale3d(${scale}, ${scale}, ${scale})
+            `;
+            
+            outerCube.style.transform = `
+                rotateX(${-rotation3d}deg)
+                rotateY(${-rotation3d * 0.5}deg)
+                rotateZ(${-rotation3d * 0.3}deg)
+            `;
+
+            if (Math.random() < 0.1) {
+                createParticle();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize animation
+        animate();
+
+        // Control handlers
+        const rotation3dSlider = document.getElementById('rotation3d');
+        const rotation4dSlider = document.getElementById('rotation4d');
+
+        rotation3dSlider.addEventListener('input', (e) => {
+            autoRotate = false;
+            rotation3d = e.target.value * 3.6;
+        });
+
+        rotation4dSlider.addEventListener('input', (e) => {
+            autoRotate = false;
+            rotation4d = e.target.value * 3.6;
+        });
+
+        // Resume auto-rotation after 2 seconds of no interaction
+        let timeout;
+        function handleInteraction() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                autoRotate = true;
+            }, 2000);
+        }
+
+        rotation3dSlider.addEventListener('change', handleInteraction);
+        rotation4dSlider.addEventListener('change', handleInteraction);
+    </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import { ApiConfiguration, ApiProvider } from "./api"
 
-export type AudioType = "notification" | "celebration" | "progress_loop"
+export type AudioType = "notification" | "celebration" | "progress_loop" 
+
+export type VoiceType = "playVoice"
 
 export interface WebviewMessage {
 	type:
@@ -31,6 +33,9 @@ export interface WebviewMessage {
 		| "alwaysAllowBrowser"
 		| "alwaysAllowMcp"
 		| "playSound"
+		| "playVoice"
+		| "voiceEnabled"
+		| "currentVoice"
 		| "soundEnabled"
 		| "soundVolume"
 		| "diffEnabled"
@@ -47,10 +52,13 @@ export interface WebviewMessage {
 	value?: number
 	commands?: string[]
 	audioType?: AudioType
+	voiceType?: VoiceType
+	voice?: string
 	// For toggleToolAutoApprove
 	serverName?: string
 	toolName?: string
 	alwaysAllow?: boolean
+	
 }
 
 export type ClineAskResponse = "yesButtonClicked" | "noButtonClicked" | "messageResponse"

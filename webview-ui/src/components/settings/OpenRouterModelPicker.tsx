@@ -173,24 +173,26 @@ const OpenRouterModelPicker: React.FC = () => {
 						)}
 					</VSCodeTextField>
 					{isDropdownVisible && (
-						<DropdownList ref={dropdownListRef}>
-							{modelSearchResults.map((item, index) => (
-								<DropdownItem
-									key={item.id}
-									ref={(el) => (itemRefs.current[index] = el)}
-									isSelected={index === selectedIndex}
-									onMouseEnter={() => setSelectedIndex(index)}
-									onClick={() => {
-										handleModelChange(item.id)
-										setIsDropdownVisible(false)
-									}}
-									dangerouslySetInnerHTML={{
-										__html: item.html,
-									}}
-								/>
-							))}
-						</DropdownList>
-					)}
+  <DropdownList ref={dropdownListRef}>
+    {modelSearchResults.map((item, index) => (
+      <DropdownItem
+        key={item.id}
+        ref={(el) => {
+          itemRefs.current[index] = el; // Fix: Ensure no return value
+        }}
+        isSelected={index === selectedIndex}
+        onMouseEnter={() => setSelectedIndex(index)}
+        onClick={() => {
+          handleModelChange(item.id);
+          setIsDropdownVisible(false);
+        }}
+        dangerouslySetInnerHTML={{
+          __html: item.html,
+        }}
+      />
+    ))}
+  </DropdownList>
+)}
 				</DropdownWrapper>
 			</div>
 

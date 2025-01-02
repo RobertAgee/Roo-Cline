@@ -4,6 +4,7 @@ import { useExtensionState } from "../../context/ExtensionStateContext"
 import { validateApiConfiguration, validateModelId } from "../../utils/validate"
 import { vscode } from "../../utils/vscode"
 import ApiOptions from "./ApiOptions"
+import VoiceOptions from "./VoiceOptions"
 
 const IS_DEV = false // FIXME: use flags when packaging
 
@@ -31,11 +32,15 @@ const SettingsView = ({ onDone }: SettingsViewProps) => {
 		setSoundEnabled,
 		soundVolume,
 		setSoundVolume,
+		voiceEnabled,
+		setVoiceEnabled,
 		diffEnabled,
 		setDiffEnabled,
 		openRouterModels,
 		setAllowedCommands,
 		allowedCommands,
+		currentVoice,
+		setCurrentVoice,
 	} = useExtensionState()
 	const [apiErrorMessage, setApiErrorMessage] = useState<string | undefined>(undefined)
 	const [modelIdErrorMessage, setModelIdErrorMessage] = useState<string | undefined>(undefined)
@@ -61,6 +66,8 @@ const SettingsView = ({ onDone }: SettingsViewProps) => {
 			vscode.postMessage({ type: "allowedCommands", commands: allowedCommands ?? [] })
 			vscode.postMessage({ type: "soundEnabled", bool: soundEnabled })
 			vscode.postMessage({ type: "soundVolume", value: soundVolume })
+			vscode.postMessage({ type: "voiceEnabled", bool: voiceEnabled })
+			vscode.postMessage({ type: "currentVoice", voice: currentVoice })
 			vscode.postMessage({ type: "diffEnabled", bool: diffEnabled })
 			onDone()
 		}
@@ -320,18 +327,39 @@ const SettingsView = ({ onDone }: SettingsViewProps) => {
 					<div style={{ marginBottom: 5 }}>
 						<div style={{ marginBottom: 10 }}>
 							<VSCodeCheckbox checked={soundEnabled} onChange={(e: any) => setSoundEnabled(e.target.checked)}>
-								<span style={{ fontWeight: "500" }}>Enable sound effects</span>
+								<span style={{ fontWeight: "500" }}>Enable sound effect notifications</span>
 							</VSCodeCheckbox>
-							<p
-								style={{
-									fontSize: "12px",
-									marginTop: "5px",
-									color: "var(--vscode-descriptionForeground)",
-								}}>
-								When enabled, Cline will play sound effects for notifications and events.
-							</p>
 						</div>
-						{soundEnabled && (
+						<div style={{ marginBottom: 5 }}>
+							<div style={{ marginBottom: 10 }}>
+								<VSCodeCheckbox checked={voiceEnabled} onChange={(e: any) => setVoiceEnabled(e.target.checked)}>
+									<span style={{ fontWeight: "500" }}>Enable TTS voice </span>
+								</VSCodeCheckbox>
+								<p
+									style={{
+										fontSize: "12px",
+										marginTop: "5px",
+										color: "var(--vscode-descriptionForeground)",
+									}}>
+									When enabled, Cline will use text-to-speech for responses to enhance accessibility and interaction.
+								</p>
+								{voiceEnabled && (
+									<div style={{ marginTop: "10px" }}>
+										<VoiceOptions
+										currentVoice={ currentVoice ?? 'en-GB-RyanNeural' }
+										setCurrentVoice={ setCurrentVoice }
+										/>
+										<p style={{
+											fontSize: "12px",
+											marginTop: "5px",
+											color: "var(--vscode-descriptionForeground)",
+										}}>
+											Choose a voice that best represents your AI assistant. Multiple languages and accents available.
+										</p>
+									</div>
+								)}
+							</div>
+						{( soundEnabled || voiceEnabled ) && (
 							<div style={{ marginLeft: 0 }}>
 								<div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
 									<span style={{ fontWeight: "500", minWidth: '50px' }}>Volume</span>
@@ -393,6 +421,7 @@ const SettingsView = ({ onDone }: SettingsViewProps) => {
 				</div>
 			</div>
 		</div>
+	</div>
 	)
 }
 

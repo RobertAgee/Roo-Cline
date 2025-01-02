@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAL 9000</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        .hal {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, #ff0000, #990000);
+            position: relative;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .hal::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            right: -20px;
+            bottom: -20px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(255,0,0,0.3), transparent 70%);
+            animation: glow 4s ease-in-out infinite;
+        }
+
+        .hal::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px;
+            height: 180px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 
+                    0 0 30px rgba(255,0,0,0.6),
+                    0 0 60px rgba(255,0,0,0.4),
+                    0 0 90px rgba(255,0,0,0.2);
+            }
+            50% {
+                transform: scale(1.1);
+                box-shadow: 
+                    0 0 50px rgba(255,0,0,0.8),
+                    0 0 100px rgba(255,0,0,0.6),
+                    0 0 150px rgba(255,0,0,0.4);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hal"></div>
+</body>
+</html>

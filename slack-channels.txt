@@ -1,0 +1,31 @@
+Public Slack Channels
+
+1. #tool-slack - For sharing Slack tips and knowledge
+2. #opt-dashboards - For discussing operations team visibility and intelligence
+3. #tool-google-sheets - For Google Sheets power users
+4. #tool-leadiq - LeadIQ tool discussions
+5. #ops-support - Full agency operations support
+6. #random - Non-work discussions and casual conversation
+7. #inv - Company-wide announcements (general channel)
+8. #opt-lifestyle-notif - Lifestyle task reminders
+9. #pot-reserve-force - For incoming agents
+10. #ops-team-beta-ops - Beta operations team channel
+11. #opt-presend-qa - QA procedures and tracking
+12. #pdt - Product team discussions
+13. #tool-teramind - Teramind support and time tracking
+14. #tool-make-a-friend - Random coworker matching
+15. #axt - Analytics dashboard requests
+16. #tng-hiring - TNG candidate discussions
+17. #tool-metabase - Data monitoring and dashboard tool
+18. #ops-powur - VIP Client Powur discussions
+19. #opt-team-growth-vip - Growth team VIP channel
+20. #tool-portal - Portal-related discussions
+21. #new-partners - Information for new Invisible partners
+22. #ops-sentries - Operations sentries channel
+23. #tool-hibob - HR and security system discussions
+24. #opt-credentials-confirmation - Credentials management
+
+Most Active Channels:
+- #inv: 4,720 members
+- #ops-support: 4,526 members
+- #random: 4,404 members

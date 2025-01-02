@@ -49,6 +49,7 @@ import { truncateHalfConversation } from "./sliding-window"
 import { ClineProvider, GlobalFileNames } from "./webview/ClineProvider"
 import { detectCodeOmission } from "../integrations/editor/detect-omission"
 import { BrowserSession } from "../services/browser/BrowserSession"
+import playVoice from "../utils/voice"
 
 const cwd =
 	vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop") // may or may not exist but fs checking existence would immediately ask for permission which would be bad UX, need to come up with a better solution
@@ -2202,7 +2203,15 @@ export class Cline {
 							"\n\n[Response interrupted by a tool use result. Only one tool may be used at a time and should be placed at the end of the message.]"
 						break
 					}
+					
 				}
+				try {
+					await playVoice(assistantMessage);
+					// console.log("Audio played successfully");
+				} catch (error) {
+					console.error("Couldn't play audio:", error);
+				}
+				
 			} catch (error) {
 				// abandoned happens when extension is no longer waiting for the cline instance to finish aborting (error is thrown here when any function in the for loop throws due to this.abort)
 				if (!this.abandoned) {
@@ -2218,7 +2227,7 @@ export class Cline {
 					}
 				}
 			}
-
+			
 			// need to call here in case the stream was aborted
 			if (this.abort) {
 				throw new Error("Cline instance aborted")
@@ -2467,3 +2476,6 @@ export class Cline {
 		return `<environment_details>\n${details.trim()}\n</environment_details>`
 	}
 }
+
+
+

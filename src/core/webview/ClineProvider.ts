@@ -23,7 +23,7 @@ import { openMention } from "../mentions"
 import { getNonce } from "./getNonce"
 import { getUri } from "./getUri"
 import { playSound, setSoundEnabled, setSoundVolume } from "../../utils/sound"
-
+import { setVoiceEnabled, setSelectedVoice } from "../../utils/voice"
 /*
 https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
 
@@ -66,9 +66,11 @@ type GlobalStateKey =
 	| "openRouterUseMiddleOutTransform"
 	| "allowedCommands"
 	| "soundEnabled"
+	| "voiceEnabled"
 	| "soundVolume"
 	| "diffEnabled"
 	| "alwaysAllowMcp"
+	| "currentVoice"
 
 export const GlobalFileNames = {
 	apiConversationHistory: "api_conversation_history.json",
@@ -140,6 +142,11 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 		// Initialize sound enabled state
 		this.getState().then(({ soundEnabled }) => {
 			setSoundEnabled(soundEnabled ?? false)
+		})
+		// Initialize voice enabled state and voice selection
+		this.getState().then(({ voiceEnabled, currentVoice }) => {
+			setVoiceEnabled(voiceEnabled ?? false)
+			setSelectedVoice(currentVoice ?? 'en-GB-RyanNeural')
 		})
 
 		webviewView.webview.options = {
@@ -609,6 +616,26 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 						await this.updateGlobalState("diffEnabled", diffEnabled)
 						await this.postStateToWebview()
 						break
+					case "playVoice":
+						if (message.text !== undefined) {
+							console.log('playing Voice!')
+						}
+						break;
+					case "voiceEnabled": {
+						console.log('voiceEnabled!')
+						const isVoiceEnabled = message.bool ?? true;
+						await this.updateGlobalState("voiceEnabled", isVoiceEnabled);
+						setVoiceEnabled(isVoiceEnabled);
+						await this.postStateToWebview();
+						break;
+					}
+					case "currentVoice": {
+						console.log('currentVoice:', message.voice);
+						await this.updateGlobalState("currentVoice", message.voice);
+						setSelectedVoice(message.voice!);
+						await this.postStateToWebview();
+						break;
+					}
 				}
 			},
 			null,
@@ -934,9 +961,11 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 			alwaysAllowBrowser,
 			alwaysAllowMcp,
 			soundEnabled,
+			voiceEnabled,
 			diffEnabled,
 			taskHistory,
 			soundVolume,
+			currentVoice,
 		} = await this.getState()
 		
 		const allowedCommands = vscode.workspace
@@ -958,10 +987,12 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 				.filter((item) => item.ts && item.task)
 				.sort((a, b) => b.ts - a.ts),
 			soundEnabled: soundEnabled ?? false,
+			voiceEnabled: voiceEnabled ?? false,
 			diffEnabled: diffEnabled ?? false,
 			shouldShowAnnouncement: lastShownAnnouncementId !== this.latestAnnouncementId,
 			allowedCommands,
 			soundVolume: soundVolume ?? 0.5,
+			currentVoice,
 		}
 	}
 
@@ -1055,6 +1086,8 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 			soundEnabled,
 			diffEnabled,
 			soundVolume,
+			voiceEnabled,
+			currentVoice,
 		] = await Promise.all([
 			this.getGlobalState("apiProvider") as Promise<ApiProvider | undefined>,
 			this.getGlobalState("apiModelId") as Promise<string | undefined>,
@@ -1093,6 +1126,8 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 			this.getGlobalState("soundEnabled") as Promise<boolean | undefined>,
 			this.getGlobalState("diffEnabled") as Promise<boolean | undefined>,
 			this.getGlobalState("soundVolume") as Promise<number | undefined>,
+			this.getGlobalState("voiceEnabled") as Promise<boolean | undefined>,
+			this.getGlobalState("currentVoice") as Promise<string | undefined>,
 		])
 
 		let apiProvider: ApiProvider
@@ -1147,8 +1182,10 @@ export class ClineProvider implements vscode.WebviewViewProvider {
 			taskHistory,
 			allowedCommands,
 			soundEnabled: soundEnabled ?? false,
+			voiceEnabled: voiceEnabled ?? false,
 			diffEnabled: diffEnabled ?? false,
 			soundVolume,
+			currentVoice: currentVoice ?? 'en-GB-RyanNeural',
 		}
 	}
 

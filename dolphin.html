@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playful Dolphin</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, #00BFFF 0%, #0066CC 100%);
+            overflow: hidden;
+        }
+
+        .ocean {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dolphin {
+            position: absolute;
+            width: 200px;
+            height: 100px;
+            animation: swim 8s ease-in-out infinite;
+        }
+
+        .body {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #4682B4 0%, #B0C4DE 100%);
+            border-radius: 60% 30% 30% 60%;
+            transform-origin: right center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+
+        .fin-top {
+            position: absolute;
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(45deg, #4682B4, #5F9EA0);
+            top: -35px;
+            left: 50%;
+            border-radius: 50% 50% 0 0;
+            transform: rotate(-15deg);
+            transform-origin: bottom;
+            animation: finWave 2s ease-in-out infinite;
+        }
+
+        .fin-side {
+            position: absolute;
+            width: 40px;
+            height: 25px;
+            background: #4682B4;
+            top: 50%;
+            left: 40%;
+            border-radius: 50%;
+            transform: rotate(-45deg);
+            animation: sideFin 2s ease-in-out infinite;
+        }
+
+        .tail {
+            position: absolute;
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(-45deg, #4682B4, #5F9EA0);
+            right: -25px;
+            top: 15px;
+            border-radius: 0 50% 50% 0;
+            transform-origin: left center;
+            animation: tailWave 0.5s ease-in-out infinite;
+        }
+
+        .eye {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #000;
+            border-radius: 50%;
+            top: 25px;
+            left: 30px;
+        }
+
+        .eye::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+        }
+
+        .splash {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            pointer-events: none;
+            opacity: 0;
+            animation: splash 8s ease-in-out infinite;
+        }
+
+        .splash::before,
+        .splash::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: ripple 1s ease-out infinite;
+        }
+
+        .splash::after {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes swim {
+            0%, 100% {
+                transform: translate(0%, 200px) rotate(-5deg);
+            }
+            25% {
+                transform: translate(200%, -150px) rotate(25deg);
+            }
+            30% {
+                transform: translate(250%, -100px) rotate(5deg);
+            }
+            50% {
+                transform: translate(400%, 200px) rotate(-5deg);
+            }
+            75% {
+                transform: translate(200%, -150px) rotate(25deg);
+            }
+            80% {
+                transform: translate(150%, -100px) rotate(5deg);
+            }
+        }
+
+        @keyframes splash {
+            0%, 100% { opacity: 0; transform: translate(0%, 200px); }
+            24%, 26% { opacity: 1; transform: translate(200%, -150px); }
+            74%, 76% { opacity: 1; transform: translate(200%, -150px); }
+        }
+
+        @keyframes tailWave {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
+        }
+
+        @keyframes finWave {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(-5deg); }
+        }
+
+        @keyframes sideFin {
+            0%, 100% { transform: rotate(-45deg) translateY(0); }
+            50% { transform: rotate(-35deg) translateY(-5px); }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0.3);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .bubble {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.3));
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 4s ease-in infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) translateX(0) scale(1);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(180deg, transparent, rgba(0,119,190,0.4));
+            animation: waveMove 3s ease-in-out infinite;
+        }
+
+        .wave::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+            animation: surfaceShimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes waveMove {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(20px); }
+        }
+
+        @keyframes surfaceShimmer {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ocean">
+        <div class="wave"></div>
+        <div class="splash"></div>
+        <div class="dolphin">
+            <div class="body">
+                <div class="fin-top"></div>
+                <div class="fin-side"></div>
+                <div class="tail"></div>
+                <div class="eye"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function createBubbles() {
+            const ocean = document.querySelector('.ocean');
+            const numBubbles = 30;
+
+            for (let i = 0; i < numBubbles; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                // Random size
+                const size = 10 + Math.random() * 20;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                
+                // Random position
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.bottom = -size + 'px';
+                
+                // Random animation duration and delay
+                const duration = 4 + Math.random() * 4;
+                const delay = Math.random() * 4;
+                bubble.style.animationDuration = duration + 's';
+                bubble.style.animationDelay = delay + 's';
+                
+                ocean.appendChild(bubble);
+
+                // Remove bubble after animation
+                setTimeout(() => {
+                    bubble.remove();
+                }, (duration + delay) * 1000);
+            }
+        }
+
+        // Create initial bubbles
+        createBubbles();
+
+        // Create new bubbles periodically
+        setInterval(createBubbles, 4000);
+    </script>
+</body>
+</html>

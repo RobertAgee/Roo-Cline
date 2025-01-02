@@ -29,8 +29,10 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setShowAnnouncement: (value: boolean) => void
 	setAllowedCommands: (value: string[]) => void
 	setSoundEnabled: (value: boolean) => void
+	setVoiceEnabled: (value: boolean) => void
 	setSoundVolume: (value: number) => void
 	setDiffEnabled: (value: boolean) => void
+	setCurrentVoice: (value: string) => void
 }
 
 const ExtensionStateContext = createContext<ExtensionStateContextType | undefined>(undefined)
@@ -43,8 +45,10 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		shouldShowAnnouncement: false,
 		allowedCommands: [],
 		soundEnabled: false,
+		voiceEnabled: false,
 		soundVolume: 0.5,
 		diffEnabled: false,
+		currentVoice: 'en-GB-RyanNeural',
 	})
 	const [didHydrateState, setDidHydrateState] = useState(false)
 	const [showWelcome, setShowWelcome] = useState(false)
@@ -145,8 +149,10 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setShowAnnouncement: (value) => setState((prevState) => ({ ...prevState, shouldShowAnnouncement: value })),
 		setAllowedCommands: (value) => setState((prevState) => ({ ...prevState, allowedCommands: value })),
 		setSoundEnabled: (value) => setState((prevState) => ({ ...prevState, soundEnabled: value })),
+		setVoiceEnabled: (value) => setState((prevState) => ({ ...prevState, voiceEnabled: value })),
 		setSoundVolume: (value) => setState((prevState) => ({ ...prevState, soundVolume: value })),
 		setDiffEnabled: (value) => setState((prevState) => ({ ...prevState, diffEnabled: value })),
+		setCurrentVoice: (value) => setState((prevState) => ({ ...prevState, currentVoice: value })),
 	}
 
 	return <ExtensionStateContext.Provider value={contextValue}>{children}</ExtensionStateContext.Provider>

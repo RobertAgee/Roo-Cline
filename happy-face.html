@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Talking Face</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff5f5;
+        }
+
+        .face {
+            width: 300px;
+            height: 300px;
+            background: #ffd280;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .eye {
+            width: 40px;
+            height: 40px;
+            background: #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 100px;
+            animation: blink 4s infinite;
+        }
+
+        .eye::after {
+            content: '';
+            width: 15px;
+            height: 15px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+        }
+
+        .eye.left {
+            left: 80px;
+            transform: rotate(-5deg);
+        }
+
+        .eye.right {
+            right: 80px;
+            transform: rotate(5deg);
+        }
+
+        @keyframes blink {
+            0%, 96%, 98% {
+                transform: scaleY(1);
+            }
+            97% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        .mouth {
+            width: 120px;
+            height: 60px;
+            border-radius: 50px;
+            background: #ff8080;
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            overflow: hidden;
+            animation: talk 0.5s infinite;
+            box-shadow: inset 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        @keyframes talk {
+            0%, 100% {
+                height: 60px;
+                bottom: 70px;
+            }
+            50% {
+                height: 40px;
+                bottom: 80px;
+            }
+        }
+
+        .mouth::after {
+            content: '';
+            width: 100%;
+            height: 25px;
+            background: #ff6666;
+            position: absolute;
+            bottom: 0;
+            border-radius: 50% 50% 0 0;
+        }
+
+        .cheek {
+            width: 50px;
+            height: 30px;
+            background: #ffb3b3;
+            position: absolute;
+            border-radius: 50%;
+            top: 150px;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .cheek.left {
+            left: 50px;
+            transform: rotate(-10deg);
+        }
+
+        .cheek.right {
+            right: 50px;
+            transform: rotate(10deg);
+        }
+
+        .eyebrow {
+            width: 60px;
+            height: 20px;
+            position: absolute;
+            top: 60px;
+        }
+
+        .eyebrow::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #b37700;
+            border-radius: 20px;
+            animation: eyebrowBounce 2s infinite;
+        }
+
+        @keyframes eyebrowBounce {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            50% { transform: translateY(-2px) rotate(2deg); }
+        }
+
+        .eyebrow.left {
+            left: 70px;
+        }
+
+        .eyebrow.left::after {
+            transform: rotate(20deg);
+        }
+
+        .eyebrow.right {
+            right: 70px;
+        }
+
+        .eyebrow.right::after {
+            transform: rotate(-20deg);
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            animation: sparkle 1.5s infinite;
+        }
+
+        .sparkle::before, .sparkle::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+        }
+
+        .sparkle::before {
+            transform: rotate(45deg);
+        }
+
+        .sparkle::after {
+            transform: rotate(90deg);
+        }
+
+        .sparkle.one {
+            top: 20%;
+            left: 20%;
+            animation-delay: 0.2s;
+        }
+
+        .sparkle.two {
+            top: 15%;
+            right: 20%;
+            animation-delay: 0.5s;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1); opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="face">
+        <div class="sparkle one"></div>
+        <div class="sparkle two"></div>
+        <div class="eyebrow left"></div>
+        <div class="eyebrow right"></div>
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="cheek left"></div>
+        <div class="cheek right"></div>
+        <div class="mouth"></div>
+    </div>
+</body>
+</html>
